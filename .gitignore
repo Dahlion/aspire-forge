@@ -1,0 +1,7 @@
+# .NET
+bin/
+obj/
+
+# Bun
+bun.lockb
+node_modules/
