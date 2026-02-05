@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: example_db
+      POSTGRES_USER: example_user
+      POSTGRES_PASSWORD: example_password
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  keycloak:
+    image: jboss/keycloak
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: db
+      DB_DATABASE: example_db
+      DB_USER: example_user
+      DB_PASSWORD: example_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
