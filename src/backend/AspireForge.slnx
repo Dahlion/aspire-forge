@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="AspireForge.ApiService/AspireForge.ApiService.csproj" />
+  <Project Path="AspireForge.AppHost/AspireForge.AppHost.csproj" />
+  <Project Path="AspireForge.ServiceDefaults/AspireForge.ServiceDefaults.csproj" />
+</Solution>

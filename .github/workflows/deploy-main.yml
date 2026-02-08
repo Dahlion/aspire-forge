@@ -1,0 +1,61 @@
+name: Deploy Main
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish API
+        run: dotnet publish src/backend/AspireForge.ApiService/AspireForge.ApiService.csproj -c Release -o out/api
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "latest"
+
+      - name: Build Web
+        working-directory: src/frontend/web
+        run: |
+          bun install
+          bun run build
+
+      - name: Prepare artifact
+        id: meta
+        run: |
+          ART="release-${GITHUB_SHA}"
+          echo "artifact_name=$ART" >> $GITHUB_OUTPUT
+          mkdir -p out/web
+          cp -r src/frontend/web/dist/* out/web/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: out
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: out
+
+      - name: Deploy (placeholder)
+        run: |
+          echo "Deploy API from out/api and Web from out/web"
+          echo "Add your cloud deploy commands here."

@@ -1,0 +1,6 @@
+@AspireForge.ApiService_HostAddress = http://localhost:5236
+
+GET {{AspireForge.ApiService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
