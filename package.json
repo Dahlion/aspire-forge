@@ -1,0 +1,14 @@
+{
+  "name": "aspire-forge",
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "scripts": {
+    "infra:up": "docker compose --env-file infra/.env -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose --env-file infra/.env -f infra/docker-compose.yml down",
+    "backend:dev": "dotnet run --project src/backend/AspireForge.AppHost",
+    "web:dev": "bun --cwd=src/frontend/web run dev",
+    "dev": "concurrently -n INFRA,BACKEND,WEB -c auto \"bun run infra:up\" \"bun run backend:dev\" \"bun run web:dev\""
+  }
+}

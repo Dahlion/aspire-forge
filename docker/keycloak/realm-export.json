@@ -1,10 +1,10 @@
 {
-  "realm": "yourapp",
+  "realm": "aspireforge",
   "enabled": true,
   "clients": [
     {
       "clientId": "web",
-      "name": "YourApp Web",
+      "name": "AspireForge",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -18,7 +18,7 @@
     },
     {
       "clientId": "api",
-      "name": "YourApp API",
+      "name": "AspireForge API",
       "enabled": true,
       "bearerOnly": true
     }

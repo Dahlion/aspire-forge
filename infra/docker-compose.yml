@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: yourapp-postgres
+    container_name: aspireforge-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: yourapp-redis
+    container_name: aspireforge-redis
     ports:
       - "${REDIS_PORT}:6379"
     healthcheck:
@@ -29,7 +29,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    container_name: yourapp-keycloak
+    container_name: aspireforge-keycloak
     command: ["start-dev", "--import-realm"]
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
