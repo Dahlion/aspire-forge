@@ -1,73 +1,51 @@
-# React + TypeScript + Vite
+# web — AspireForge Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The web client for AspireForge. A React 19 SPA styled with HeroUI and Tailwind CSS 4, authenticating via Keycloak and calling the .NET API.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| | Version |
+|---|---|
+| React + React DOM | 19 |
+| TypeScript | 5.9 |
+| Vite | 7 |
+| HeroUI (`@heroui/react`) | 2 |
+| Tailwind CSS | 4 (via `@tailwindcss/vite`, no config file needed) |
+| keycloak-js | 26 |
+| Framer Motion | 12 (animation dependency for HeroUI) |
+| Runtime / package manager | Bun |
 
-## React Compiler
+## Key Source Files
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| File | Purpose |
+|---|---|
+| `src/auth/keycloak.ts` | Keycloak instance, configured from env vars |
+| `src/App.tsx` | Main component: auth state, todo list, API calls, token refresh |
+| `src/main.tsx` | Entry point: Keycloak initialization, HeroUI provider setup |
+| `src/hero.ts` | HeroUI theme/provider configuration |
 
-## Expanding the ESLint configuration
+## Environment Variables
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Defined in `.env` (relative to this directory):
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:5236` | Backend API base URL |
+| `VITE_KEYCLOAK_URL` | `http://localhost:8080` | Keycloak server URL |
+| `VITE_KEYCLOAK_REALM` | `aspireforge` | Keycloak realm name |
+| `VITE_KEYCLOAK_CLIENT_ID` | `web` | Keycloak public client ID |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Scripts
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Run from this directory (`src/frontend/web`) with `bun run <script>`, or from the repo root with `bun run web:dev`:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+| Script | Description |
+|---|---|
+| `dev` | Start Vite dev server with hot reload |
+| `build` | TypeScript check + production build |
+| `lint` | Run ESLint |
+| `preview` | Serve the production build locally |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Token Handling
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Before every API request, the app calls `keycloak.updateToken(30)` to proactively refresh the access token if it has fewer than 30 seconds remaining. The `onTokenExpired` callback handles background refresh when the token expires between requests. If the user's session itself has expired, `updateToken` throws — the user must log out and back in.

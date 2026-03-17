@@ -5,22 +5,24 @@ This guide will walk you through setting up and running the AspireForge applicat
 ## Prerequisites
 
 Ensure you have the following installed:
-- **Docker Desktop** - Required to run PostgreSQL, Redis, and Keycloak
+- **Podman** (with the `podman compose` plugin) - Required to run PostgreSQL, Redis, and Keycloak
 - **Bun** - JavaScript/TypeScript package manager and runtime
 - **.NET 10** - Required for the backend API
-- **Node.js** (optional) - Some tools may require it, but Bun is the primary runtime
 
 ## Quick Start
 
 From the root directory of the project:
 
 ```bash
-# 1. Start the full development stack (all-in-one)
+# Install frontend dependencies (first time only)
+cd src/frontend/web && bun install && cd ../../..
+
+# Start the full development stack (all-in-one)
 bun run dev
 ```
 
 This command uses `concurrently` to start:
-- **INFRA**: Docker containers (PostgreSQL, Redis, Keycloak)
+- **INFRA**: Podman containers (PostgreSQL, Redis, Keycloak)
 - **BACKEND**: .NET API service
 - **WEB**: Vite development server for the React frontend
 
@@ -41,7 +43,7 @@ cd ../../../
 ### 2. Start Infrastructure
 
 ```bash
-# Start docker containers
+# Start Podman containers
 bun run infra:up
 
 # Or stop them with:
@@ -50,7 +52,7 @@ bun run infra:down
 
 This starts:
 - **PostgreSQL** - Database (port 5432)
-- **Redis** - Cache (port 6379)
+- **Redis** - Cache (port 6379) — starts but is not currently used by any API endpoint; registered for future caching
 - **Keycloak** - Authentication server (port 8080)
 
 ### 3. Run Database Migrations
@@ -88,7 +90,7 @@ The frontend will be available at `http://localhost:5173`
 - **URL**: http://localhost:5236
 - **Purpose**: .NET 10 API service
 - **Authentication**: Bearer token from Keycloak
-- **Docs**: Check `src/backend/AspireForge.ApiService/AspireForge.ApiService.http` for example requests
+- **Docs**: Explore the API interactively at http://localhost:5236/swagger
 
 ### Keycloak Admin Console
 - **URL**: http://localhost:8080
@@ -115,10 +117,10 @@ Log in to the frontend using these credentials. Keycloak will issue a JWT token 
 
 ## Troubleshooting
 
-### Docker Connection Error
-**Error**: `error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.`
+### Podman Not Running
+**Error**: `Error: unable to connect to Podman socket` or similar when running `bun run infra:up`.
 
-**Solution**: Start Docker Desktop. The application requires Docker to run the infrastructure services (Keycloak, PostgreSQL, Redis).
+**Solution**: Ensure Podman is running. On Windows/Mac, start Podman Desktop. On Linux, start the Podman socket with `systemctl --user start podman.socket`. Also verify `podman compose` is installed.
 
 ### 401 Unauthorized Errors
 **Error**: `POST http://localhost:5236/api/todos 401 (Unauthorized)`
@@ -144,8 +146,8 @@ cd ../../../
 **Error**: Failed to connect to PostgreSQL
 
 **Solution**: 
-1. Ensure Docker containers are running: `bun run infra:up`
-2. Check that PostgreSQL is healthy in Docker: `docker ps`
+1. Ensure Podman containers are running: `bun run infra:up`
+2. Check that PostgreSQL is healthy: `podman ps`
 3. Run migrations: `dotnet ef database update --project src/backend/AspireForge.ApiService`
 
 ## Project Structure
@@ -158,7 +160,9 @@ aspire-forge/
 │   │   ├── AspireForge.AppHost/
 │   │   └── AspireForge.ServiceDefaults/
 │   └── frontend/
-│       └── web/              # React + Vite frontend app
+│       ├── web/              # React 19 + Vite frontend app (active)
+│       ├── mobile/           # Placeholder, not yet developed
+│       └── shared/           # Placeholder, not yet developed
 ├── infra/                    # Infrastructure config (Docker, .env)
 ├── docker/                   # Docker build contexts and configs
 │   └── keycloak/             # Keycloak realm export
