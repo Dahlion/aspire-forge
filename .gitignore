@@ -5,3 +5,11 @@ obj/
 # Bun
 bun.lockb
 node_modules/
+src/backend/.vs/AspireForge.slnx/solutionOpened
+src/backend/.vs/AspireForge.slnx/config/applicationhost.config
+src/backend/.vs/AspireForge.slnx/FileContentIndex/6fdccdde-5c92-49a1-b798-048eabbcb3b6.vsidx
+src/backend/.vs/AspireForge.slnx/DesignTimeBuild/.dtbcache.v2
+src/backend/.vs/AspireForge.slnx/v18/.suo
+src/backend/.vs/AspireForge.slnx/v18/DocumentLayout.backup.json
+src/backend/.vs/AspireForge.slnx/v18/DocumentLayout.json
+src/backend/AspireForge.ApiService/AspireForge.ApiService.csproj.user
