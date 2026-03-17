@@ -1,6 +1,29 @@
 {
   "realm": "aspireforge",
   "enabled": true,
+  "clientScopes": [
+    {
+      "name": "api-audience",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
   "clients": [
     {
       "clientId": "web",
@@ -14,6 +37,9 @@
       ],
       "webOrigins": [
         "http://localhost:5173"
+      ],
+      "defaultClientScopes": [
+        "api-audience"
       ]
     },
     {
