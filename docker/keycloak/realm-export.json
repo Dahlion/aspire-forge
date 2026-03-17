@@ -1,6 +1,10 @@
 {
   "realm": "aspireforge",
   "enabled": true,
+  "loginTheme": "seacoast-devops-theme",
+  "accountTheme": "seacoast-devops-theme",
+  "adminTheme": "seacoast-devops-theme",
+  "emailTheme": "seacoast-devops-theme",
   "clientScopes": [
     {
       "name": "api-audience",
