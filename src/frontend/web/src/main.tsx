@@ -12,6 +12,11 @@ async function bootstrap() {
         checkLoginIframe: false,
     });
 
+    // If not authenticated after init, explicitly trigger login to the realm login page
+    if (!keycloak.authenticated) {
+        await keycloak.login({ redirectUri: window.location.origin });
+    }
+
     ReactDOM.createRoot(document.getElementById("root")!).render(
         <React.StrictMode>
             <HeroUIProvider>

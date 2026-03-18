@@ -1,10 +1,91 @@
 {
   "realm": "aspireforge",
+  "displayName": "AspireForge",
   "enabled": true,
   "loginTheme": "seacoast-devops-theme",
   "accountTheme": "seacoast-devops-theme",
   "adminTheme": "seacoast-devops-theme",
   "emailTheme": "seacoast-devops-theme",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "platform_admin",
+        "description": "Full administrative access across all tenants and subscriptions."
+      },
+      {
+        "name": "subscription_manager",
+        "description": "Can manage tenant subscriptions."
+      },
+      {
+        "name": "tenant_admin",
+        "description": "Can administer a specific tenant."
+      },
+      {
+        "name": "tenant_user_manager",
+        "description": "Can manage users within a tenant."
+      },
+      {
+        "name": "tenant_viewer",
+        "description": "Read-only tenant access."
+      }
+    ]
+  },
+
+  "groups": [
+    {
+      "name": "platform",
+      "subGroups": [
+        {
+          "name": "admins",
+          "realmRoles": [
+            "platform_admin",
+            "subscription_manager"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tenants",
+      "subGroups": [
+        {
+          "name": "seacoast-internal",
+          "attributes": {
+            "tenant_id": ["seacoast-internal"],
+            "tenant_name": ["Seacoast Internal"],
+            "subscription_plan": ["enterprise"],
+            "subscription_status": ["active"],
+            "billing_cycle": ["annual"],
+            "max_users": ["25"]
+          },
+          "subGroups": [
+            {
+              "name": "admins",
+              "realmRoles": [
+                "tenant_admin",
+                "tenant_user_manager"
+              ]
+            },
+            {
+              "name": "viewers",
+              "realmRoles": [
+                "tenant_viewer"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
   "clientScopes": [
     {
       "name": "api-audience",
@@ -28,21 +109,32 @@
       ]
     }
   ],
+
   "clients": [
     {
       "clientId": "web",
-      "name": "AspireForge",
+      "name": "Seacoast DevOps Admin Portal Web",
       "enabled": true,
       "publicClient": true,
+      "protocol": "openid-connect",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "http://localhost:5173/*"
+        "http://localhost:5173/*",
+        "https://localhost:5173/*",
+        "http://localhost:5000/signin-oidc",
+        "https://localhost:5001/signin-oidc"
       ],
       "webOrigins": [
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://localhost:5173",
+        "http://localhost:5000",
+        "https://localhost:5001"
       ],
       "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles",
         "api-audience"
       ]
     },
@@ -53,14 +145,67 @@
       "bearerOnly": true
     }
   ],
+
   "users": [
     {
-      "username": "dev",
+      "username": "jkaufman",
       "enabled": true,
       "emailVerified": true,
+      "firstName": "Jordan",
+      "lastName": "Kaufman",
+      "email": "iordaniya@protonmail.com",
       "credentials": [
-        { "type": "password", "value": "dev", "temporary": false }
-      ]
+        {
+          "type": "password",
+          "value": "TestPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "platform_admin",
+        "subscription_manager",
+        "tenant_admin",
+        "tenant_user_manager"
+      ],
+      "groups": [
+        "/platform/admins",
+        "/tenants/seacoast-internal/admins"
+      ],
+      "attributes": {
+        "tenant_id": ["seacoast-internal"],
+        "subscription_plan": ["enterprise"],
+        "subscription_status": ["active"]
+      }
+    },
+    {
+      "username": "dclark",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Daniel",
+      "lastName": "Clark",
+      "email": "dannclark25@gmail.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "TestPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "platform_admin",
+        "subscription_manager",
+        "tenant_admin",
+        "tenant_user_manager"
+      ],
+      "groups": [
+        "/platform/admins",
+        "/tenants/seacoast-internal/admins"
+      ],
+      "attributes": {
+        "tenant_id": ["seacoast-internal"],
+        "subscription_plan": ["enterprise"],
+        "subscription_status": ["active"]
+      }
     }
   ]
 }
