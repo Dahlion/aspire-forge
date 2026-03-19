@@ -38,19 +38,19 @@ type DataTableProps = {
 
 const DEFAULT_DOM =
     "<'row mb-2'<'col-12'B>>" +
+    "<'row mb-2'<'col-12'Q>>" + 
     "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
     "<'row'<'col-sm-12'tr>>" +
     "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>";
 
 const DEFAULT_BUTTONS = [
-    { extend: "copy",          className: "btn-sm btn-outline-secondary" },
-    { extend: "csv",           className: "btn-sm btn-outline-secondary" },
-    { extend: "print",         className: "btn-sm btn-outline-secondary" },
-    { extend: "colvis",        text: "Columns", className: "btn-sm btn-outline-info" },
-    { extend: "searchBuilder", text: '<i class="bi bi-funnel"></i> Filter', className: "btn-sm btn-outline-primary" },
+    { extend: "copy",   className: "btn-sm btn-outline-secondary" },
+    { extend: "csv",    className: "btn-sm btn-outline-secondary" },
+    { extend: "print",  className: "btn-sm btn-outline-secondary" },
+    { extend: "colvis", text: "Columns", className: "btn-sm btn-outline-info" },
 ];
 
-export function DataTable({ id, columns, data, options, onAction }: DataTableProps) {
+export function DataTable({ columns, data, options, onAction }: DataTableProps) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const onActionRef = useRef(onAction);
     onActionRef.current = onAction;
