@@ -90,6 +90,18 @@ app.MapGet("/api/me", (HttpContext ctx) =>
     return Results.Ok(new { name, claims });
 }).RequireAuthorization();
 
+
+// Auto-apply EF Core migrations and provision storage on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var blobService = scope.ServiceProvider.GetRequiredService<BlobServiceClient>();
+    await blobService.GetBlobContainerClient("test").CreateIfNotExistsAsync();
+}
+
+
 var adminApi = app.MapGroup("/api/admin").RequireAuthorization("AdminOnly");
 
 adminApi.MapGet("/dashboard", async (AppDbContext db) =>
@@ -379,15 +391,6 @@ adminApi.MapDelete("/tenants/{tenantId:guid}/subscriptions/{subscriptionId:guid}
     return Results.NoContent();
 });
 
-// Auto-apply EF Core migrations and provision storage on startup
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    var blobService = scope.ServiceProvider.GetRequiredService<BlobServiceClient>();
-    await blobService.GetBlobContainerClient("test").CreateIfNotExistsAsync();
-}
 
 await app.RunAsync();
 
