@@ -5,11 +5,9 @@
     "concurrently": "^9.0.0"
   },
   "scripts": {
-    "infra:up": "podman compose --env-file infra/.env -f infra/docker-compose.yml up -d",
-    "infra:down": "podman compose --env-file infra/.env -f infra/docker-compose.yml down",
-    "backend:dev": "dotnet run --project src/backend/AspireForge.AppHost",
+    "backend:dev": "dotnet run --project src/backend/AspireForge.AppHost --launch-profile http",
     "web:dev": "bun --cwd=src/frontend/web run dev",
-    "dev": "concurrently -n INFRA,BACKEND,WEB -c auto \"bun run infra:up\" \"bun run backend:dev\" \"bun run web:dev\"",
+    "dev": "concurrently -n BACKEND,WEB -c auto \"bun run backend:dev\" \"bun run web:dev\"",
     "dbupdate": "dotnet ef database update --project src/backend/AspireForge.ApiService --startup-project src/backend/AspireForge.ApiService"
   }
 }

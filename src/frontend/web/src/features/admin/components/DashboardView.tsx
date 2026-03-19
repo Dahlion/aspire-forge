@@ -1,7 +1,10 @@
-import { Card, CardBody, CardHeader, Chip, Divider } from "@heroui/react";
+import { useEffect, useRef } from "react";
+import Chart from "chart.js/auto";
+import { DataTable } from "../../../lib/DataTable";
 import { MetricCard } from "./MetricCard";
 import type { DashboardData } from "../../../types/admin";
 import type { AdminRoute } from "../routing";
+import type { DataTableAction } from "../../../lib/DataTable";
 
 type DashboardViewProps = {
     dashboard: DashboardData | null;
@@ -9,76 +12,226 @@ type DashboardViewProps = {
     onNavigate: (route: AdminRoute) => void;
 };
 
+const STATUS_COLOR_MAP: Record<string, string> = {
+    active: "success",
+    trialing: "info",
+    past_due: "warning",
+    canceled: "secondary",
+};
+
 export function DashboardView({ dashboard, loadingDashboard, onNavigate }: DashboardViewProps) {
+    const tenantChartRef = useRef<HTMLCanvasElement>(null);
+    const subChartRef = useRef<HTMLCanvasElement>(null);
+    const tenantChartInst = useRef<Chart | null>(null);
+    const subChartInst = useRef<Chart | null>(null);
+
+    // Tenant status doughnut
+    useEffect(() => {
+        if (!tenantChartRef.current || !dashboard) return;
+        tenantChartInst.current?.destroy();
+
+        tenantChartInst.current = new Chart(tenantChartRef.current, {
+            type: "doughnut",
+            data: {
+                labels: ["Active", "Inactive"],
+                datasets: [
+                    {
+                        data: [
+                            dashboard.activeTenantCount,
+                            Math.max(0, dashboard.tenantCount - dashboard.activeTenantCount),
+                        ],
+                        backgroundColor: ["#2E8B57", "#6c757d"],
+                        borderWidth: 2,
+                        borderColor: "#fff",
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: "bottom" } },
+            },
+        });
+
+        return () => {
+            tenantChartInst.current?.destroy();
+            tenantChartInst.current = null;
+        };
+    }, [dashboard]);
+
+    // Subscription status doughnut
+    useEffect(() => {
+        if (!subChartRef.current || !dashboard) return;
+        subChartInst.current?.destroy();
+
+        const inactive = Math.max(0, dashboard.subscriptionCount - dashboard.activeSubscriptionCount);
+
+        subChartInst.current = new Chart(subChartRef.current, {
+            type: "doughnut",
+            data: {
+                labels: ["Active", "Other"],
+                datasets: [
+                    {
+                        data: [dashboard.activeSubscriptionCount, inactive],
+                        backgroundColor: ["#2E8B57", "#6c757d"],
+                        borderWidth: 2,
+                        borderColor: "#fff",
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: "bottom" } },
+            },
+        });
+
+        return () => {
+            subChartInst.current?.destroy();
+            subChartInst.current = null;
+        };
+    }, [dashboard]);
+
+    const tenantsColumns = [
+        { data: "name", title: "Name" },
+        { data: "slug", title: "Slug" },
+        {
+            data: "isActive",
+            title: "Status",
+            render: (d: boolean) =>
+                d
+                    ? '<span class="badge badge-success">Active</span>'
+                    : '<span class="badge badge-secondary">Inactive</span>',
+        },
+        { data: "subscriptionCount", title: "Subs", className: "text-center" },
+        { data: "activeSubscriptionCount", title: "Active Subs", className: "text-center" },
+        {
+            data: "createdAt",
+            title: "Created",
+            render: (d: string) => new Date(d).toLocaleDateString(),
+        },
+        {
+            data: "id",
+            title: "",
+            orderable: false,
+            className: "text-center",
+            render: (d: string) =>
+                `<button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${d}">
+                   <i class="bi bi-arrow-right-circle"></i> View
+                 </button>`,
+        },
+    ];
+
+    const renewalColumns = [
+        { data: "planName", title: "Plan" },
+        {
+            data: "renewsAt",
+            title: "Renews At",
+            render: (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—"),
+        },
+        {
+            data: null,
+            title: "Price",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            render: (_: unknown, __: unknown, row: any) =>
+                `${row.currency as string} ${(row.monthlyPrice as number).toFixed(2)}`,
+        },
+        {
+            data: "status",
+            title: "Status",
+            render: (d: string) => {
+                const cls = STATUS_COLOR_MAP[d] ?? "secondary";
+                return `<span class="badge badge-${cls}">${d}</span>`;
+            },
+        },
+    ];
+
+    const handleAction = ({ action, id }: DataTableAction) => {
+        if (action === "view") onNavigate({ kind: "tenant", tenantId: id });
+    };
+
     return (
         <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <MetricCard label="Tenants" value={dashboard?.tenantCount ?? 0} loading={loadingDashboard} />
-                <MetricCard label="Active tenants" value={dashboard?.activeTenantCount ?? 0} loading={loadingDashboard} />
-                <MetricCard label="Subscriptions" value={dashboard?.subscriptionCount ?? 0} loading={loadingDashboard} />
-                <MetricCard label="Active subs" value={dashboard?.activeSubscriptionCount ?? 0} loading={loadingDashboard} />
-                <MetricCard
-                    label="MRR"
-                    value={dashboard ? `$${dashboard.monthlyRecurringRevenue.toFixed(2)}` : "$0.00"}
-                    loading={loadingDashboard}
-                />
+            {/* Metric cards */}
+            <div className="row mb-4">
+                {[
+                    { label: "Tenants", value: dashboard?.tenantCount ?? 0 },
+                    { label: "Active Tenants", value: dashboard?.activeTenantCount ?? 0 },
+                    { label: "Subscriptions", value: dashboard?.subscriptionCount ?? 0 },
+                    { label: "Active Subs", value: dashboard?.activeSubscriptionCount ?? 0 },
+                    {
+                        label: "MRR",
+                        value: dashboard
+                            ? `$${dashboard.monthlyRecurringRevenue.toFixed(2)}`
+                            : "$0.00",
+                    },
+                ].map((m) => (
+                    <div key={m.label} className="col-sm-6 col-xl mb-3">
+                        <MetricCard label={m.label} value={m.value} loading={loadingDashboard} />
+                    </div>
+                ))}
             </div>
 
-            <Card className="shadow-sm">
-                <CardHeader>
-                    <div>
-                        <div className="text-lg font-semibold">Recent Tenants</div>
-                        <div className="text-sm opacity-70">Newest organizations in your workspace</div>
-                    </div>
-                </CardHeader>
-                <Divider />
-                <CardBody className="space-y-2">
-                    {(dashboard?.recentTenants ?? []).map((tenant) => (
-                        <button
-                            key={tenant.id}
-                            type="button"
-                            onClick={() => onNavigate({ kind: "tenant", tenantId: tenant.id })}
-                            className="flex w-full items-center justify-between rounded-xl border border-divider px-4 py-3 text-left hover:bg-content2"
-                        >
-                            <div>
-                                <div className="font-medium">{tenant.name}</div>
-                                <div className="text-sm opacity-70">Created {new Date(tenant.createdAt).toLocaleDateString()}</div>
-                            </div>
-                            <Chip variant="flat" color={tenant.isActive ? "success" : "default"}>
-                                {tenant.subscriptionCount} subs
-                            </Chip>
-                        </button>
-                    ))}
-                </CardBody>
-            </Card>
-
-            <Card className="shadow-sm">
-                <CardHeader>
-                    <div>
-                        <div className="text-lg font-semibold">Upcoming Renewals</div>
-                        <div className="text-sm opacity-70">Next 10 subscriptions by renewal date</div>
-                    </div>
-                </CardHeader>
-                <Divider />
-                <CardBody className="space-y-2">
-                    {(dashboard?.upcomingRenewals ?? []).map((renewal) => (
-                        <div key={renewal.id} className="flex items-center justify-between rounded-xl border border-divider px-4 py-3">
-                            <div>
-                                <div className="font-medium">{renewal.planName}</div>
-                                <div className="text-sm opacity-70">{new Date(renewal.renewsAt ?? "").toLocaleDateString()}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-medium">
-                                    {renewal.currency} {renewal.monthlyPrice.toFixed(2)}
-                                </div>
-                                <Chip size="sm" variant="flat" color={renewal.status === "active" ? "success" : "warning"}>
-                                    {renewal.status}
-                                </Chip>
-                            </div>
+            {/* Charts */}
+            <div className="row mb-4">
+                <div className="col-md-6 mb-3">
+                    <div className="card shadow-sm h-100">
+                        <div className="card-header font-weight-bold">
+                            <i className="bi bi-building mr-2" />
+                            Tenant Status
                         </div>
-                    ))}
-                </CardBody>
-            </Card>
+                        <div className="card-body d-flex align-items-center justify-content-center">
+                            <canvas ref={tenantChartRef} style={{ maxHeight: "240px" }} />
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3">
+                    <div className="card shadow-sm h-100">
+                        <div className="card-header font-weight-bold">
+                            <i className="bi bi-receipt mr-2" />
+                            Subscription Status
+                        </div>
+                        <div className="card-body d-flex align-items-center justify-content-center">
+                            <canvas ref={subChartRef} style={{ maxHeight: "240px" }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Recent tenants DataTable */}
+            <div className="card shadow-sm mb-4">
+                <div className="card-header">
+                    <h6 className="mb-0 font-weight-bold">
+                        <i className="bi bi-people-fill mr-2" />
+                        Recent Tenants
+                    </h6>
+                    <small className="text-muted">Newest organizations</small>
+                </div>
+                <div className="card-body">
+                    <DataTable
+                        id="dt-recent-tenants"
+                        columns={tenantsColumns}
+                        data={dashboard?.recentTenants ?? []}
+                        onAction={handleAction}
+                    />
+                </div>
+            </div>
+
+            {/* Upcoming renewals DataTable */}
+            <div className="card shadow-sm mb-4">
+                <div className="card-header">
+                    <h6 className="mb-0 font-weight-bold">
+                        <i className="bi bi-calendar-event mr-2" />
+                        Upcoming Renewals
+                    </h6>
+                    <small className="text-muted">Next 10 subscriptions by renewal date</small>
+                </div>
+                <div className="card-body">
+                    <DataTable
+                        id="dt-renewals"
+                        columns={renewalColumns}
+                        data={dashboard?.upcomingRenewals ?? []}
+                    />
+                </div>
+            </div>
         </>
     );
 }

@@ -1,5 +1,1 @@
-@import "tailwindcss";
-@plugin "./hero.ts";
-
-/* Let Tailwind scan HeroUI theme sources */
-@source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@import "./styles/bootstrap_seacoast.css";

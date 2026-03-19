@@ -1,7 +1,8 @@
+using AspireForge.ApiService.Email;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using StackExchange.Redis;
 using System.Security.Claims;
 using AspireForge.ApiService.Data;
 using AspireForge.ServiceDefaults;
@@ -21,17 +22,22 @@ builder.Services.AddCors(options =>
          .AllowCredentials());
 });
 
+// --- Email (Mailpit in dev) ---
+builder.Services.AddScoped<IEmailService, MailKitEmailService>();
+
 // --- EF Core (Postgres) ---
-var pg = builder.Configuration.GetConnectionString("Postgres");
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(pg));
+builder.AddNpgsqlDbContext<AppDbContext>("Postgres");
 
 // --- Redis ---
-var redisConn = builder.Configuration.GetConnectionString("Redis");
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn!));
+builder.AddRedisClient("Redis");
+
+// --- Azure Blob Storage (Azurite in dev) ---
+builder.AddAzureBlobServiceClient("blobs");
 
 // --- Auth (Keycloak) ---
-var authority = builder.Configuration["Auth:Authority"]!;
-var audience = builder.Configuration["Auth:Audience"]!;
+var keycloakBase = builder.Configuration.GetConnectionString("keycloak") ?? "http://localhost:8080";
+var authority = $"{keycloakBase.TrimEnd('/')}/realms/aspireforge";
+var audience = builder.Configuration["Auth:Audience"] ?? "api";
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -373,7 +379,17 @@ adminApi.MapDelete("/tenants/{tenantId:guid}/subscriptions/{subscriptionId:guid}
     return Results.NoContent();
 });
 
-app.Run();
+// Auto-apply EF Core migrations and provision storage on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var blobService = scope.ServiceProvider.GetRequiredService<BlobServiceClient>();
+    await blobService.GetBlobContainerClient("test").CreateIfNotExistsAsync();
+}
+
+await app.RunAsync();
 
 static bool IsAdmin(ClaimsPrincipal user)
 {

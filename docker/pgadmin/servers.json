@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "AspireForge Dev",
+      "Group": "Servers",
+      "Host": "host.docker.internal",
+      "Port": 5433,
+      "MaintenanceDB": "postgres",
+      "Username": "postgres",
+      "Password": "aspireforgedev",
+      "SSLMode": "prefer",
+      "Comment": "Auto-configured. Postgres dev password: aspireforgedev"
+    }
+  }
+}

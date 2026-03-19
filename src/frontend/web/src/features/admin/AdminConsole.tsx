@@ -1,4 +1,3 @@
-import { Card, CardBody } from "@heroui/react";
 import { useAdminManagement } from "./hooks/useAdminManagement";
 import { AdminSidebar } from "./components/AdminSidebar";
 import { DashboardView } from "./components/DashboardView";
@@ -12,26 +11,31 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
     const admin = useAdminManagement(enabled);
 
     return (
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-            <AdminSidebar
-                tenants={admin.tenants}
-                loadingTenants={admin.loadingTenants}
-                busy={admin.busy}
-                newTenantName={admin.newTenantName}
-                newTenantSlug={admin.newTenantSlug}
-                newTenantActive={admin.newTenantActive}
-                setNewTenantName={admin.setNewTenantName}
-                setNewTenantSlug={admin.setNewTenantSlug}
-                setNewTenantActive={admin.setNewTenantActive}
-                onCreateTenant={admin.createTenantAction}
-                onNavigate={admin.navigateToAdminRoute}
-            />
+        <div className="row">
+            {/* Sidebar */}
+            <div className="col-lg-3 mb-4">
+                <AdminSidebar
+                    tenants={admin.tenants}
+                    loadingTenants={admin.loadingTenants}
+                    busy={admin.busy}
+                    newTenantName={admin.newTenantName}
+                    newTenantSlug={admin.newTenantSlug}
+                    newTenantActive={admin.newTenantActive}
+                    setNewTenantName={admin.setNewTenantName}
+                    setNewTenantSlug={admin.setNewTenantSlug}
+                    setNewTenantActive={admin.setNewTenantActive}
+                    onCreateTenant={admin.createTenantAction}
+                    onNavigate={admin.navigateToAdminRoute}
+                />
+            </div>
 
-            <section className="space-y-4">
+            {/* Main content */}
+            <div className="col-lg-9">
                 {admin.errorMessage && (
-                    <Card className="border border-danger-300 bg-danger-50 text-danger-800">
-                        <CardBody className="text-sm">{admin.errorMessage}</CardBody>
-                    </Card>
+                    <div className="alert alert-danger alert-dismissible mb-4" role="alert">
+                        <i className="bi bi-exclamation-circle-fill mr-2" />
+                        {admin.errorMessage}
+                    </div>
                 )}
 
                 {admin.route.kind === "dashboard" ? (
@@ -76,7 +80,7 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                         onDeleteSubscription={admin.deleteSubscriptionAction}
                     />
                 )}
-            </section>
+            </div>
         </div>
     );
 }
