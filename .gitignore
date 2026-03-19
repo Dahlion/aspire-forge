@@ -16,3 +16,5 @@ src/backend/AspireForge.ApiService/AspireForge.ApiService.csproj.user
 
 # Claude 
 .claude/
+/.vs
+/src/backend/.vs/AspireForge.slnx/FileContentIndex
