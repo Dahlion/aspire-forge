@@ -16,3 +16,12 @@ src/backend/AspireForge.ApiService/AspireForge.ApiService.csproj.user
 
 # Claude 
 .claude/
+/.vs
+/src/backend/.vs/AspireForge.slnx/FileContentIndex
+src/backend/.vs/AspireForge/CopilotIndices/18.5.39068.60183/CodeChunks.db
+src/backend/.vs/AspireForge/CopilotIndices/18.5.39068.60183/SemanticSymbols.db
+src/backend/.vs/AspireForge.slnx/copilot-chat/9238793b/sessions/59aec788-89df-42b9-ae86-e8b1ea7cd9f8
+src/backend/.vs/AspireForge.slnx/v18/.futdcache.v2
+src/backend/.vs/ProjectEvaluation/aspireforge.strings.v10.bin
+src/backend/.vs/ProjectEvaluation/aspireforge.projects.v10.bin
+src/backend/.vs/ProjectEvaluation/aspireforge.metadata.v10.bin
