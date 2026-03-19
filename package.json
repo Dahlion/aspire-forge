@@ -1,9 +1,9 @@
 {
   "name": "aspire-forge",
-  "private": true,
   "devDependencies": {
     "concurrently": "^9.0.0"
   },
+  "private": true,
   "scripts": {
     "backend:dev": "dotnet run --project src/backend/AspireForge.AppHost --launch-profile http",
     "web:dev": "bun --cwd=src/frontend/web run dev",

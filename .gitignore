@@ -13,3 +13,6 @@ src/backend/.vs/AspireForge.slnx/v18/.suo
 src/backend/.vs/AspireForge.slnx/v18/DocumentLayout.backup.json
 src/backend/.vs/AspireForge.slnx/v18/DocumentLayout.json
 src/backend/AspireForge.ApiService/AspireForge.ApiService.csproj.user
+
+# Claude 
+.claude/

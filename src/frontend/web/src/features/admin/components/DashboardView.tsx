@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
+import { Chart } from "chart.js";
 import { DataTable } from "../../../lib/DataTable";
 import { MetricCard } from "./MetricCard";
 import type { DashboardData } from "../../../types/admin";

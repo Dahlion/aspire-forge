@@ -1,4 +1,24 @@
 import { useEffect, useRef } from "react";
+import DTReact from "datatables.net-react";
+import DT from "datatables.net-bs5";
+
+// CSS — imported through the bundler, not via CDN
+import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
+import "datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css";
+import "datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css";
+
+// Extensions
+import "datatables.net-buttons-bs5";
+import "datatables.net-buttons/js/buttons.html5.mjs";
+import "datatables.net-buttons/js/buttons.print.mjs";
+import "datatables.net-buttons/js/buttons.colVis.mjs";
+import "datatables.net-colreorder-bs5";
+import "datatables.net-fixedheader-bs5";
+import "datatables.net-responsive-bs5";
+import "datatables.net-select-bs5";
+import "datatables.net-searchbuilder-bs5";
+
+DTReact.use(DT);
 
 export type DataTableAction = {
     action: string;
@@ -7,7 +27,6 @@ export type DataTableAction = {
 
 type DataTableProps = {
     id: string;
-    /** DataTables column definitions (typed as any to avoid requiring datatables.net types) */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     columns: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,73 +43,54 @@ const DEFAULT_DOM =
     "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>";
 
 const DEFAULT_BUTTONS = [
-    { extend: "copy",   className: "btn-sm btn-outline-secondary" },
-    { extend: "csv",    className: "btn-sm btn-outline-secondary" },
-    { extend: "excel",  className: "btn-sm btn-outline-secondary" },
-    { extend: "pdf",    className: "btn-sm btn-outline-secondary" },
-    { extend: "print",  className: "btn-sm btn-outline-secondary" },
-    { extend: "colvis", text: "Columns", className: "btn-sm btn-outline-info" },
+    { extend: "copy",          className: "btn-sm btn-outline-secondary" },
+    { extend: "csv",           className: "btn-sm btn-outline-secondary" },
+    { extend: "print",         className: "btn-sm btn-outline-secondary" },
+    { extend: "colvis",        text: "Columns", className: "btn-sm btn-outline-info" },
     { extend: "searchBuilder", text: '<i class="bi bi-funnel"></i> Filter', className: "btn-sm btn-outline-primary" },
 ];
 
 export function DataTable({ id, columns, data, options, onAction }: DataTableProps) {
-    const tableRef = useRef<HTMLTableElement>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dtRef = useRef<any>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const onActionRef = useRef(onAction);
     onActionRef.current = onAction;
 
-    // Initialize DataTables once on mount
     useEffect(() => {
-        if (!tableRef.current) return;
+        const container = wrapperRef.current;
+        if (!container) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const dt = $(tableRef.current as any).DataTable({
-            columns,
-            data,
-            dom: DEFAULT_DOM,
-            buttons: DEFAULT_BUTTONS,
-            colReorder: true,
-            fixedHeader: true,
-            responsive: true,
-            select: "single",
-            pageLength: 10,
-            lengthMenu: [5, 10, 25, 50, 100],
-            ...options,
-        });
-
-        dtRef.current = dt;
-
-        // Event delegation for action buttons rendered inside table cells
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        $(tableRef.current as any).on("click", "[data-action]", function (this: HTMLElement) {
-            if (!onActionRef.current) return;
-            const action = $(this).data("action") as string;
-            const rowId = $(this).data("id") as string;
-            onActionRef.current({ action, id: rowId });
-        });
-
-        return () => {
-            if (dtRef.current) {
-                dtRef.current.destroy();
-                dtRef.current = null;
-            }
+        const handleClick = (e: MouseEvent) => {
+            const target = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+            if (!target || !onActionRef.current) return;
+            onActionRef.current({
+                action: target.dataset.action!,
+                id: target.dataset.id!,
+            });
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // intentional: init once; data updates handled in the effect below
 
-    // Sync data updates without destroying + re-creating the table
-    useEffect(() => {
-        if (!dtRef.current) return;
-        dtRef.current.clear().rows.add(data).draw(false);
-    }, [data]);
+        container.addEventListener("click", handleClick);
+        return () => container.removeEventListener("click", handleClick);
+    }, []);
 
     return (
-        <table
-            ref={tableRef}
-            id={id}
-            className="table table-striped table-hover table-bordered"
-            style={{ width: "100%" }}
-        />
+        <div ref={wrapperRef}>
+            <DTReact
+                columns={columns}
+                data={data}
+                className="table table-striped table-hover table-bordered"
+                options={{
+                    destroy: true, // Destroy and recreate on each render to handle dynamic data/columns
+                    dom: DEFAULT_DOM,
+                    buttons: DEFAULT_BUTTONS,
+                    colReorder: true,
+                    fixedHeader: true,
+                    responsive: true,
+                    select: "single",
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50, 100],
+                    ...options,
+                }}
+            />
+        </div>
     );
 }
