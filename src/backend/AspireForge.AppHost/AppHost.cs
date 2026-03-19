@@ -3,15 +3,16 @@ using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// --- Postgres ---
-// Fixed port 5433 (avoids clashing with any local Postgres on 5432) and a
-// stable dev password so docker/pgadmin/servers.json can auto-connect.
-var pgPassword = builder.AddParameter("pg-password", "aspireforgedev");
+// --- Postgres (Azure Flexible Server → local container in dev) ---
+var pgServer = builder
+    .AddAzurePostgresFlexibleServer("pg")
+    .WithPasswordAuthentication()
+    .RunAsContainer(cfg => cfg
+        .WithPgAdmin()
+        .WithDataVolume()
+        .WithLifetime(ContainerLifetime.Persistent));
 
-var pgServer = builder.AddPostgres("pg", password: pgPassword, port: 5433)
-    .WithDataVolume();
-
-var postgres = pgServer.AddDatabase("Postgres");
+var postgresDb = pgServer.AddDatabase("Postgres");
 
 // --- Redis ---
 var redis = builder.AddRedis("Redis")
@@ -38,30 +39,9 @@ var storage = builder.AddAzureStorage("storage")
 
 var blobs = storage.AddBlobs("blobs");
 
-// --- pgAdmin ---
-// Desktop mode: no login required.
-// servers.json pre-configures the Postgres connection so you land straight
-// in the query tool. Password stored in the JSON: aspireforgedev
-builder.AddContainer("pgadmin", "dpage/pgadmin4")
-    .WithHttpEndpoint(port: 5050, targetPort: 80)
-    .WithEnvironment("PGADMIN_DEFAULT_EMAIL", "admin@local.dev")
-    .WithEnvironment("PGADMIN_DEFAULT_PASSWORD", "admin")
-    // Desktop mode — disables the login page entirely
-    .WithEnvironment("PGADMIN_CONFIG_SERVER_MODE", "False")
-    // No master password prompt for saved credentials
-    .WithEnvironment("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False")
-    // Point pgAdmin at our pre-configured servers list
-    .WithEnvironment("PGADMIN_SERVER_JSON_FILE", "/pgadmin4/servers.json")
-    .WithBindMount(
-        Path.Combine(builder.AppHostDirectory, "..", "..", "..", "docker", "pgadmin", "servers.json"),
-        "/pgadmin4/servers.json",
-        isReadOnly: true)
-    .WithVolume("pgadmin-data", "/var/lib/pgadmin")
-    .WaitFor(pgServer);
-
 // --- API ---
 var api = builder.AddProject<Projects.AspireForge_ApiService>("api")
-    .WithReference(postgres)
+    .WithReference(postgresDb)
     .WithReference(redis)
     .WithReference(keycloak)
     .WithReference(mailpit.GetEndpoint("smtp"))
