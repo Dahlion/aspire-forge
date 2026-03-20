@@ -5,7 +5,8 @@ export type AdminRoute =
     | { kind: "plans" }
     | { kind: "billing" }
     | { kind: "leads" }
-    | { kind: "toolbox" };
+    | { kind: "toolbox" }
+    | { kind: "workflows" };
 
 export function parseAdminHashRoute(): AdminRoute {
     const raw = window.location.hash.replace(/^#/, "") || "/admin/dashboard";
@@ -23,7 +24,9 @@ export function parseAdminHashRoute(): AdminRoute {
         case "billing":  return { kind: "billing" };
         case "leads":    return { kind: "leads" };
         case "toolbox":  return { kind: "toolbox" };
+        case "workflows": return { kind: "workflows" };
         default:         return { kind: "dashboard" };
+        
     }
 }
 
@@ -36,5 +39,6 @@ export function navigateToAdminRoute(route: AdminRoute) {
         case "leads":     window.location.hash = "/admin/leads";     break;
         case "toolbox":   window.location.hash = "/admin/toolbox";   break;
         case "tenant":    window.location.hash = `/admin/tenants/${route.tenantId}`; break;
+        case "workflows": window.location.hash = "/admin/workflows"; break;
     }
 }

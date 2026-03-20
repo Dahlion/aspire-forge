@@ -11,7 +11,7 @@ var pgServer = builder
     .WithPgAdmin(pd => {
         pd.WithHostPort(5050);
         pd.WithImage("dpage/pgadmin4"); // The official image
-        pd.WithImageTag("9.1.3");       // The specific version you want
+    
     })
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent));

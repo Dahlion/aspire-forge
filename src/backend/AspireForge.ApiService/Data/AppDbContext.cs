@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace AspireForge.ApiService.Data;
 
@@ -13,6 +14,11 @@ public class AppDbContext : DbContext
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<TenantNote> TenantNotes => Set<TenantNote>();
     public DbSet<TenantContact> TenantContacts => Set<TenantContact>();
+
+    public DbSet<WorkflowProcess> WorkflowProcesses => Set<WorkflowProcess>();
+    public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
+    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
+    public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -112,6 +118,30 @@ public class AppDbContext : DbContext
                 .WithMany(t => t.Contacts)
                 .HasForeignKey(c => c.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Add these to your existing OnModelCreating method
+        modelBuilder.Entity<WorkflowProcess>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PrimaryColor).HasMaxLength(7);
+            entity.Property(e => e.AccentColor).HasMaxLength(7);
+            entity.Property(e => e.IconClass).HasMaxLength(60);
+            entity.Property(e => e.AppSlug).HasMaxLength(60);
+            entity.HasMany(e => e.Steps).WithOne().HasForeignKey(s => s.WorkflowProcessId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkflowStep>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.WorkflowProcessId, e.Order });
+        });
+
+        modelBuilder.Entity<WorkflowInstance>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId);
+            entity.HasOne(e => e.CurrentStep).WithMany().HasForeignKey(e => e.CurrentStepId);
         });
     }
 }
@@ -228,4 +258,73 @@ public class TenantContact
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Tenant? Tenant { get; set; }
+}
+
+// The Blueprint/Template (e.g., "Employee Hiring")
+public class WorkflowProcess
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    [Required, MaxLength(100)]
+    public string Name { get; set; } = "";
+    public string? Description { get; set; }
+    public Guid? TenantId { get; set; } // If null, it's a global template
+    public List<WorkflowStep> Steps { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    // Branding
+    [MaxLength(7)]
+    public string PrimaryColor { get; set; } = "#2F4F4F";
+    [MaxLength(7)]
+    public string AccentColor { get; set; } = "#4a9a9a";
+    [MaxLength(60)]
+    public string IconClass { get; set; } = "bi-diagram-3-fill";
+    [MaxLength(60)]
+    public string? AppSlug { get; set; }
+}
+
+// A specific step in the blueprint
+public class WorkflowStep
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid WorkflowProcessId { get; set; }
+    [Required, MaxLength(100)]
+    public string Name { get; set; } = "";
+    public int Order { get; set; } // 1, 2, 3...
+    public string? DefaultAssigneeRole { get; set; }
+    public bool AllowBacktracking { get; set; } = true;
+    public bool CanSkip { get; set; } = false;
+}
+
+// The actual "Ticket" or "Task" running through the process
+public class WorkflowInstance
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid WorkflowProcessId { get; set; }
+    public Guid CurrentStepId { get; set; }
+    
+    [Required, MaxLength(200)]
+    public string Title { get; set; } = "";
+    public string? DataJson { get; set; } // Flexible data payload for specific app needs
+    
+    public string? CurrentAssigneeId { get; set; }
+    public string Status { get; set; } = "Active"; // Active, Completed, Cancelled
+    
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public WorkflowProcess? Process { get; set; }
+    public WorkflowStep? CurrentStep { get; set; }
+}
+
+// Audit trail of every move
+public class WorkflowHistory
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid WorkflowInstanceId { get; set; }
+    public Guid FromStepId { get; set; }
+    public Guid ToStepId { get; set; }
+    public string ActionBy { get; set; } = "";
+    public string? Comments { get; set; }
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 }

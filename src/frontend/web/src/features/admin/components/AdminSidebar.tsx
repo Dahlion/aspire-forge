@@ -90,9 +90,14 @@ export function AdminSidebar({
                     <NavItem icon="bi-box-seam-fill" label="Plans" active={isActive("plans")}
                         onClick={() => onNavigate({ kind: "plans" })} />
 
+                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">App Builder</div>
+                    <NavItem icon="bi-diagram-3-fill" label="Workflows" active={isActive("workflows")}
+                        onClick={() => onNavigate({ kind: "workflows" })} />
+
                     <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">Dev Tools</div>
                     <NavItem icon="bi-tools" label="Toolbox" active={isActive("toolbox")}
                         onClick={() => onNavigate({ kind: "toolbox" })} />
+
                 </div>
             </div>
 

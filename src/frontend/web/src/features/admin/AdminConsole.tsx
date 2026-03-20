@@ -7,6 +7,7 @@ import { PlansView } from "./components/PlansView";
 import { BillingView } from "./components/BillingView";
 import { LeadsView } from "./components/LeadsView";
 import { ToolboxView } from "./components/ToolboxView";
+import { WorkflowsView } from "./components/WorkflowsView"; // <-- New Import
 
 type AdminConsoleProps = {
     enabled: boolean;
@@ -140,6 +141,9 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                         onDeleteLead={admin.deleteLeadAction}
                     />
                 )}
+
+                {/* Workflow Routing */}
+                {admin.route.kind === "workflows" && <WorkflowsView />}
 
                 {admin.route.kind === "toolbox" && <ToolboxView />}
             </div>
