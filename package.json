@@ -7,7 +7,7 @@
   "scripts": {
     "backend:dev": "dotnet run --project src/backend/AspireForge.AppHost --launch-profile http",
     "web:dev": "bun --cwd=src/frontend/web run dev",
-    "dev": "concurrently -n BACKEND,WEB -c auto \"bun run backend:dev\" \"bun run web:dev\"",
+    "dev": "concurrently -n BACKEND,WEB -c auto \"bun run backend:dev\" \"sleep 5 && bun run web:dev\"",
     "dbupdate": "dotnet ef database update --project src/backend/AspireForge.ApiService --startup-project src/backend/AspireForge.ApiService",
     "infra:up": "podman compose -f infra/docker-compose.yml up -d",
     "infra:down": "podman compose -f infra/docker-compose.yml down"
