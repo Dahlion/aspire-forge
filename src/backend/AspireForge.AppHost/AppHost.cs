@@ -8,10 +8,14 @@ var pgServer = builder
     .AddAzurePostgresFlexibleServer("pg")
     .WithPasswordAuthentication()
     .RunAsContainer(cfg => cfg
-        .WithPgAdmin(pd => pd.WithHostPort(5050))
-        .WithDataVolume()
-        .WithLifetime(ContainerLifetime.Persistent));
-
+    .WithPgAdmin(pd => {
+        pd.WithHostPort(5050);
+        pd.WithImage("dpage/pgadmin4"); // The official image
+        pd.WithImageTag("9.1.3");       // The specific version you want
+    })
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent));
+    
 var postgresDb = pgServer.AddDatabase("Postgres");
 
 // --- Redis ---
