@@ -14,6 +14,7 @@ public class AdminController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> GetDashboard()
     {
         var now = DateTimeOffset.UtcNow;
+
         var tenantCount = await db.Tenants.CountAsync();
         var activeTenantCount = await db.Tenants.CountAsync(t => t.IsActive);
         var subscriptionCount = await db.Subscriptions.CountAsync();
@@ -21,6 +22,16 @@ public class AdminController(AppDbContext db) : ControllerBase
         var mrr = await db.Subscriptions
             .Where(s => s.Status == "active")
             .SumAsync(s => (decimal?)s.MonthlyPrice) ?? 0;
+
+        var leadCount = await db.Leads.CountAsync();
+        var newLeadCount = await db.Leads.CountAsync(l => l.Status == "new");
+        var activeLeadCount = await db.Leads.CountAsync(l => l.Status != "won" && l.Status != "lost");
+
+        var overdueInvoiceCount = await db.Invoices
+            .CountAsync(i => i.Status == "sent" && i.DueAt < now);
+        var outstandingRevenue = await db.Invoices
+            .Where(i => i.Status == "sent" || i.Status == "overdue")
+            .SumAsync(i => (decimal?)i.Amount) ?? 0;
 
         var upcomingRenewals = await db.Subscriptions
             .Where(s => s.RenewsAt != null && s.RenewsAt >= now)
@@ -32,7 +43,12 @@ public class AdminController(AppDbContext db) : ControllerBase
         var recentTenants = await db.Tenants
             .OrderByDescending(t => t.CreatedAt)
             .Take(8)
-            .Select(t => new { t.Id, t.Name, t.Slug, t.IsActive, t.CreatedAt, SubscriptionCount = t.Subscriptions.Count })
+            .Select(t => new
+            {
+                t.Id, t.Name, t.Slug, t.IsActive, t.CreatedAt,
+                SubscriptionCount = t.Subscriptions.Count,
+                ActiveSubscriptionCount = t.Subscriptions.Count(s => s.Status == "active")
+            })
             .ToListAsync();
 
         return Ok(new
@@ -42,10 +58,17 @@ public class AdminController(AppDbContext db) : ControllerBase
             subscriptionCount,
             activeSubscriptionCount,
             monthlyRecurringRevenue = mrr,
+            leadCount,
+            newLeadCount,
+            activeLeadCount,
+            overdueInvoiceCount,
+            outstandingRevenue,
             recentTenants,
             upcomingRenewals
         });
     }
+
+    // ── Tenants ───────────────────────────────────────────────────────────────
 
     [HttpGet("tenants")]
     public async Task<IActionResult> GetTenants()
@@ -93,6 +116,19 @@ public class AdminController(AppDbContext db) : ControllerBase
                     {
                         s.Id, s.PlanName, s.Status, s.Seats, s.MonthlyPrice, s.Currency,
                         s.AutoRenew, s.StartedAt, s.RenewsAt, s.CancelledAt, s.CreatedAt, s.UpdatedAt
+                    }),
+                contacts = t.Contacts
+                    .OrderByDescending(c => c.IsPrimary)
+                    .ThenBy(c => c.Name)
+                    .Select(c => new
+                    {
+                        c.Id, c.Name, c.Title, c.Email, c.Phone, c.IsPrimary, c.CreatedAt
+                    }),
+                notes = t.Notes
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Select(n => new
+                    {
+                        n.Id, n.Content, n.Category, n.CreatedBy, n.CreatedAt
                     })
             })
             .FirstOrDefaultAsync();
@@ -131,6 +167,8 @@ public class AdminController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
         return NoContent();
     }
+
+    // ── Subscriptions ─────────────────────────────────────────────────────────
 
     [HttpPost("tenants/{tenantId:guid}/subscriptions")]
     public async Task<IActionResult> CreateSubscription(Guid tenantId, [FromBody] CreateSubscriptionRequest input)
@@ -190,6 +228,97 @@ public class AdminController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    // ── Tenant Contacts ───────────────────────────────────────────────────────
+
+    [HttpPost("tenants/{tenantId:guid}/contacts")]
+    public async Task<IActionResult> CreateContact(Guid tenantId, [FromBody] CreateContactRequest input)
+    {
+        if (!await db.Tenants.AnyAsync(t => t.Id == tenantId))
+            return NotFound(new { message = "Tenant not found." });
+        if (string.IsNullOrWhiteSpace(input.Name))
+            return BadRequest(new { message = "Contact name is required." });
+
+        var contact = new TenantContact
+        {
+            TenantId = tenantId,
+            Name = input.Name.Trim(),
+            Title = input.Title?.Trim(),
+            Email = input.Email?.Trim(),
+            Phone = input.Phone?.Trim(),
+            IsPrimary = input.IsPrimary ?? false,
+        };
+
+        db.TenantContacts.Add(contact);
+        await db.SaveChangesAsync();
+        return Created($"/api/admin/tenants/{tenantId}/contacts/{contact.Id}", contact);
+    }
+
+    [HttpPut("tenants/{tenantId:guid}/contacts/{contactId:guid}")]
+    public async Task<IActionResult> UpdateContact(Guid tenantId, Guid contactId, [FromBody] UpdateContactRequest input)
+    {
+        var contact = await db.TenantContacts
+            .FirstOrDefaultAsync(c => c.Id == contactId && c.TenantId == tenantId);
+        if (contact is null) return NotFound();
+
+        if (!string.IsNullOrWhiteSpace(input.Name)) contact.Name = input.Name.Trim();
+        if (input.Title != null) contact.Title = input.Title.Trim();
+        if (input.Email != null) contact.Email = input.Email.Trim();
+        if (input.Phone != null) contact.Phone = input.Phone.Trim();
+        if (input.IsPrimary.HasValue) contact.IsPrimary = input.IsPrimary.Value;
+
+        contact.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+        return Ok(contact);
+    }
+
+    [HttpDelete("tenants/{tenantId:guid}/contacts/{contactId:guid}")]
+    public async Task<IActionResult> DeleteContact(Guid tenantId, Guid contactId)
+    {
+        var contact = await db.TenantContacts
+            .FirstOrDefaultAsync(c => c.Id == contactId && c.TenantId == tenantId);
+        if (contact is null) return NotFound();
+        db.TenantContacts.Remove(contact);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ── Tenant Notes ──────────────────────────────────────────────────────────
+
+    [HttpPost("tenants/{tenantId:guid}/notes")]
+    public async Task<IActionResult> CreateNote(Guid tenantId, [FromBody] CreateNoteRequest input)
+    {
+        if (!await db.Tenants.AnyAsync(t => t.Id == tenantId))
+            return NotFound(new { message = "Tenant not found." });
+        if (string.IsNullOrWhiteSpace(input.Content))
+            return BadRequest(new { message = "Note content is required." });
+
+        var username = User.Identity?.Name ?? "admin";
+        var note = new TenantNote
+        {
+            TenantId = tenantId,
+            Content = input.Content.Trim(),
+            Category = input.Category?.Trim().ToLowerInvariant(),
+            CreatedBy = username,
+        };
+
+        db.TenantNotes.Add(note);
+        await db.SaveChangesAsync();
+        return Created($"/api/admin/tenants/{tenantId}/notes/{note.Id}", note);
+    }
+
+    [HttpDelete("tenants/{tenantId:guid}/notes/{noteId:guid}")]
+    public async Task<IActionResult> DeleteNote(Guid tenantId, Guid noteId)
+    {
+        var note = await db.TenantNotes
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.TenantId == tenantId);
+        if (note is null) return NotFound();
+        db.TenantNotes.Remove(note);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private static string Slugify(string value)
     {
         var chars = value.Trim().ToLowerInvariant()
@@ -205,6 +334,7 @@ public class AdminController(AppDbContext db) : ControllerBase
 
 public record CreateTenantRequest(string Name, string? Slug, bool? IsActive);
 public record UpdateTenantRequest(string? Name, string? Slug, bool? IsActive);
+
 public record CreateSubscriptionRequest(
     string PlanName, string Status, int Seats, decimal MonthlyPrice, string Currency,
     bool AutoRenew, DateTimeOffset StartedAt, DateTimeOffset? RenewsAt, DateTimeOffset? CancelledAt);
@@ -212,3 +342,8 @@ public record UpdateSubscriptionRequest(
     string? PlanName, string? Status, int? Seats, decimal? MonthlyPrice, string? Currency,
     bool? AutoRenew, DateTimeOffset? StartedAt, DateTimeOffset? RenewsAt, bool RenewsAtSet,
     DateTimeOffset? CancelledAt, bool CancelledAtSet);
+
+public record CreateContactRequest(string Name, string? Title, string? Email, string? Phone, bool? IsPrimary);
+public record UpdateContactRequest(string? Name, string? Title, string? Email, string? Phone, bool? IsPrimary);
+
+public record CreateNoteRequest(string Content, string? Category);

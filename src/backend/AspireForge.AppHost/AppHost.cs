@@ -46,8 +46,8 @@ var api = builder.AddProject<Projects.AspireForge_ApiService>("api")
     .WithReference(keycloak)
     .WithReference(mailpit.GetEndpoint("smtp"))
     .WithReference(blobs)
+    .WaitFor(postgresDb)
     .WaitFor(keycloak)
-    .WithHttpEndpoint(port: 5236, name: "http")
     .WithExternalHttpEndpoints();
 
 _ = api;

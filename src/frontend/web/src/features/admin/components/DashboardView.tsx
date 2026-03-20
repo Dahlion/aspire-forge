@@ -150,8 +150,8 @@ export function DashboardView({ dashboard, loadingDashboard, onNavigate }: Dashb
 
     return (
         <>
-            {/* Metric cards */}
-            <div className="row mb-4">
+            {/* Metric cards — row 1 */}
+            <div className="row mb-3">
                 {[
                     { label: "Tenants", value: dashboard?.tenantCount ?? 0 },
                     { label: "Active Tenants", value: dashboard?.activeTenantCount ?? 0 },
@@ -159,9 +159,24 @@ export function DashboardView({ dashboard, loadingDashboard, onNavigate }: Dashb
                     { label: "Active Subs", value: dashboard?.activeSubscriptionCount ?? 0 },
                     {
                         label: "MRR",
-                        value: dashboard
-                            ? `$${dashboard.monthlyRecurringRevenue.toFixed(2)}`
-                            : "$0.00",
+                        value: dashboard ? `$${dashboard.monthlyRecurringRevenue.toFixed(2)}` : "$0.00",
+                    },
+                ].map((m) => (
+                    <div key={m.label} className="col-sm-6 col-xl mb-3">
+                        <MetricCard label={m.label} value={m.value} loading={loadingDashboard} />
+                    </div>
+                ))}
+            </div>
+            {/* Metric cards — row 2 */}
+            <div className="row mb-4">
+                {[
+                    { label: "Total Leads", value: dashboard?.leadCount ?? 0 },
+                    { label: "New Leads", value: dashboard?.newLeadCount ?? 0 },
+                    { label: "Active Pipeline", value: dashboard?.activeLeadCount ?? 0 },
+                    { label: "Overdue Invoices", value: dashboard?.overdueInvoiceCount ?? 0 },
+                    {
+                        label: "Outstanding",
+                        value: dashboard ? `$${dashboard.outstandingRevenue.toFixed(2)}` : "$0.00",
                     },
                 ].map((m) => (
                     <div key={m.label} className="col-sm-6 col-xl mb-3">
