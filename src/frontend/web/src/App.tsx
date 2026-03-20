@@ -5,6 +5,7 @@ import { LandingPage } from "./features/landing/LandingPage";
 import { AdminLoginPage } from "./features/login/AdminLoginPage";
 import { ClientLoginPage } from "./features/login/ClientLoginPage";
 import { ClientPortal } from "./features/client/ClientPortal";
+import { ClientAppView } from "./features/client/ClientAppView";
 
 function useHash() {
     const [hash, setHash] = useState(window.location.hash);
@@ -17,7 +18,7 @@ function useHash() {
 }
 
 export default function App() {
-    const { ready, authenticated, busy, canManageTenants, username, login, logout } = useAuthSession();
+    const { ready, authenticated, busy, canManageTenants, username, tenantId, login, logout } = useAuthSession();
     const hash = useHash();
 
     // After login redirect to the right portal
@@ -42,8 +43,9 @@ export default function App() {
         );
     }
 
-    const isAdminRoute = hash.startsWith("#/admin");
+    const isAdminRoute  = hash.startsWith("#/admin");
     const isClientRoute = hash.startsWith("#/client");
+    const clientAppSlug = hash.startsWith("#/client/app/") ? hash.slice("#/client/app/".length) : null;
     const isLoginAdmin = hash === "#/login/admin";
     const isLoginClient = hash === "#/login/client";
     const isLanding = !isAdminRoute && !isClientRoute && !isLoginAdmin && !isLoginClient;
@@ -94,7 +96,9 @@ export default function App() {
                 )
             ) : isClientRoute ? (
                 authenticated ? (
-                    <ClientPortal username={username} logout={logout} />
+                    clientAppSlug
+                        ? <ClientAppView slug={clientAppSlug} tenantId={tenantId} username={username} logout={logout} />
+                        : <ClientPortal username={username} tenantId={tenantId} logout={logout} />
                 ) : (
                     <ClientLoginPage login={login} busy={busy} />
                 )

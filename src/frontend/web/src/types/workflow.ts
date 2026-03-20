@@ -8,6 +8,17 @@ export type WorkflowStep = {
     defaultAssigneeRole?: string;
 };
 
+export type FormFieldType = "text" | "number" | "textarea" | "select" | "date" | "email";
+
+export type FormField = {
+    key: string;
+    label: string;
+    type: FormFieldType;
+    required?: boolean;
+    options?: string[];   // for select type
+    placeholder?: string;
+};
+
 export type WorkflowProcess = {
     id: string;
     name: string;
@@ -19,6 +30,7 @@ export type WorkflowProcess = {
     accentColor: string;
     iconClass: string;
     appSlug?: string | null;
+    formSchema?: string | null; // JSON-encoded FormField[]
 };
 
 export type WorkflowInstance = {
@@ -36,8 +48,23 @@ export type WorkflowInstance = {
     currentStep?: WorkflowStep;
 };
 
+export type WorkflowDeployment = {
+    id: string;
+    workflowProcessId: string;
+    tenantId: string;
+    deployedAt: string;
+    process?: WorkflowProcess;
+    tenant?: { id: string; name: string; slug: string };
+};
+
 export type MoveRequest = {
     targetStepId: string;
     newAssigneeId?: string;
     comments?: string;
 };
+
+export function parseFormSchema(process: WorkflowProcess): FormField[] {
+    if (!process.formSchema) return [];
+    try { return JSON.parse(process.formSchema) as FormField[]; }
+    catch { return []; }
+}

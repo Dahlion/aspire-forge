@@ -63,6 +63,8 @@ export function useAuthSession() {
     };
 
     const username = keycloak.tokenParsed?.preferred_username as string | undefined ?? "";
+    // Keycloak custom attribute: set "tenant_id" as a user attribute mapped to the token
+    const tenantId = keycloak.tokenParsed?.tenant_id as string | undefined ?? null;
 
     return {
         ready,
@@ -71,6 +73,7 @@ export function useAuthSession() {
         roles,
         canManageTenants,
         username,
+        tenantId,
         login,
         logout,
     };

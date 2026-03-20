@@ -23,7 +23,7 @@ public class WorkflowController : ControllerBase
     }
 
     [HttpPost("processes")]
-    public async Task<IActionResult> CreateProcess([FromBody] CreateProcessRequest request)
+    public async Task<IActionResult> CreateProcess([FromBody] UpsertProcessRequest request)
     {
         var process = new WorkflowProcess
         {
@@ -34,6 +34,7 @@ public class WorkflowController : ControllerBase
             AccentColor  = request.AccentColor  ?? "#4a9a9a",
             IconClass    = request.IconClass    ?? "bi-diagram-3-fill",
             AppSlug      = request.AppSlug,
+            FormSchema   = request.FormSchema,
             Steps        = request.Steps.Select((s, i) => new WorkflowStep
             {
                 Name                = s.Name,
@@ -48,17 +49,62 @@ public class WorkflowController : ControllerBase
         return CreatedAtAction(nameof(GetProcesses), new { id = process.Id }, process);
     }
 
+    [HttpPut("processes/{id:guid}")]
+    public async Task<IActionResult> UpdateProcess(Guid id, [FromBody] UpsertProcessRequest request)
+    {
+        var process = await _db.WorkflowProcesses
+            .Include(p => p.Steps)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (process == null) return NotFound();
+
+        process.Name         = request.Name;
+        process.Description  = request.Description;
+        process.PrimaryColor = request.PrimaryColor ?? process.PrimaryColor;
+        process.AccentColor  = request.AccentColor  ?? process.AccentColor;
+        process.IconClass    = request.IconClass    ?? process.IconClass;
+        process.AppSlug      = request.AppSlug;
+        process.FormSchema   = request.FormSchema;
+
+        // Replace steps: remove old, add new with correct order
+        _db.WorkflowSteps.RemoveRange(process.Steps);
+        process.Steps = request.Steps.Select((s, i) => new WorkflowStep
+        {
+            WorkflowProcessId   = id,
+            Name                = s.Name,
+            Order               = i + 1,
+            DefaultAssigneeRole = s.DefaultAssigneeRole,
+            AllowBacktracking   = s.AllowBacktracking,
+            CanSkip             = s.CanSkip
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return Ok(process);
+    }
+
+    [HttpDelete("processes/{id:guid}")]
+    public async Task<IActionResult> DeleteProcess(Guid id)
+    {
+        var process = await _db.WorkflowProcesses.FindAsync(id);
+        if (process == null) return NotFound();
+        _db.WorkflowProcesses.Remove(process);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ── Instances ──────────────────────────────────────────────────────────
 
     [HttpGet("instances")]
-    public async Task<IActionResult> GetInstances([FromQuery] Guid processId)
+    public async Task<IActionResult> GetInstances([FromQuery] Guid processId, [FromQuery] Guid? tenantId)
     {
-        var instances = await _db.WorkflowInstances
+        var query = _db.WorkflowInstances
             .Include(i => i.Process!.Steps)
             .Include(i => i.CurrentStep)
-            .Where(i => i.WorkflowProcessId == processId)
-            .OrderByDescending(i => i.UpdatedAt)
-            .ToListAsync();
+            .Where(i => i.WorkflowProcessId == processId);
+
+        if (tenantId.HasValue)
+            query = query.Where(i => i.TenantId == tenantId);
+
+        var instances = await query.OrderByDescending(i => i.UpdatedAt).ToListAsync();
         return Ok(instances);
     }
 
@@ -117,16 +163,58 @@ public class WorkflowController : ControllerBase
         instance.CurrentAssigneeId = request.NewAssigneeId ?? instance.CurrentAssigneeId;
         instance.UpdatedAt         = DateTimeOffset.UtcNow;
 
-        // Auto-complete when reaching final step
         var maxOrder = instance.Process.Steps.Max(s => s.Order);
         if (targetStep.Order == maxOrder)
             instance.Status = "Completed";
 
         await _db.SaveChangesAsync();
 
-        // Return with navigation props populated
         instance.CurrentStep = targetStep;
         return Ok(instance);
+    }
+
+    // ── Deployments ────────────────────────────────────────────────────────
+
+    [HttpGet("deployments")]
+    public async Task<IActionResult> GetDeployments([FromQuery] Guid? tenantId, [FromQuery] Guid? processId)
+    {
+        var query = _db.WorkflowDeployments
+            .Include(d => d.Process!.Steps)
+            .Include(d => d.Tenant)
+            .AsQueryable();
+
+        if (tenantId.HasValue) query = query.Where(d => d.TenantId == tenantId);
+        if (processId.HasValue) query = query.Where(d => d.WorkflowProcessId == processId);
+
+        var list = await query.OrderBy(d => d.DeployedAt).ToListAsync();
+        return Ok(list);
+    }
+
+    [HttpPost("deployments")]
+    public async Task<IActionResult> CreateDeployment([FromBody] CreateDeploymentRequest request)
+    {
+        var exists = await _db.WorkflowDeployments.AnyAsync(d =>
+            d.WorkflowProcessId == request.WorkflowProcessId && d.TenantId == request.TenantId);
+        if (exists) return Conflict("Already deployed to this tenant.");
+
+        var deployment = new WorkflowDeployment
+        {
+            WorkflowProcessId = request.WorkflowProcessId,
+            TenantId          = request.TenantId
+        };
+        _db.WorkflowDeployments.Add(deployment);
+        await _db.SaveChangesAsync();
+        return Ok(deployment);
+    }
+
+    [HttpDelete("deployments/{id:guid}")]
+    public async Task<IActionResult> DeleteDeployment(Guid id)
+    {
+        var deployment = await _db.WorkflowDeployments.FindAsync(id);
+        if (deployment == null) return NotFound();
+        _db.WorkflowDeployments.Remove(deployment);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     // ── Seed ───────────────────────────────────────────────────────────────
@@ -134,7 +222,6 @@ public class WorkflowController : ControllerBase
     [HttpPost("seed")]
     public async Task<IActionResult> Seed()
     {
-        // Idempotent: skip if seed processes already exist
         var delegateId = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
         var hireId     = new Guid("b2c3d4e5-f6a7-8901-bcde-f12345678901");
         var demoTenant = new Guid("ffffffff-ffff-ffff-ffff-ffffffffffff");
@@ -153,6 +240,15 @@ public class WorkflowController : ControllerBase
             ("Done",         null,            false, false)
         };
 
+        const string delegateSchema = """
+            [
+              {"key":"description","label":"Description","type":"textarea","required":false},
+              {"key":"priority","label":"Priority","type":"select","required":true,"options":["Low","Medium","High","Critical"]},
+              {"key":"dueDate","label":"Due Date","type":"date","required":false},
+              {"key":"storyPoints","label":"Story Points","type":"number","required":false}
+            ]
+            """;
+
         var delegateProcess = new WorkflowProcess
         {
             Id           = delegateId,
@@ -162,6 +258,7 @@ public class WorkflowController : ControllerBase
             AccentColor  = "#5c6bc0",
             IconClass    = "bi-kanban-fill",
             AppSlug      = "delegate",
+            FormSchema   = delegateSchema,
             Steps        = delegateSteps.Select((s, i) => new WorkflowStep
             {
                 Id                  = new Guid($"11111111-1111-1111-1111-11111111110{i + 1}"),
@@ -209,6 +306,16 @@ public class WorkflowController : ControllerBase
             ("Active Employee",     null)
         };
 
+        const string hireSchema = """
+            [
+              {"key":"department","label":"Department","type":"select","required":true,"options":["Engineering","Design","Marketing","Sales","HR","Operations","Finance"]},
+              {"key":"role","label":"Role / Job Title","type":"text","required":true},
+              {"key":"resumeUrl","label":"Resume URL","type":"text","required":false},
+              {"key":"salaryExpectation","label":"Salary Expectation","type":"number","required":false},
+              {"key":"notes","label":"Notes","type":"textarea","required":false}
+            ]
+            """;
+
         var hireProcess = new WorkflowProcess
         {
             Id           = hireId,
@@ -218,6 +325,7 @@ public class WorkflowController : ControllerBase
             AccentColor  = "#4caf50",
             IconClass    = "bi-person-badge-fill",
             AppSlug      = "hire",
+            FormSchema   = hireSchema,
             Steps        = hireSteps.Select((s, i) => new WorkflowStep
             {
                 Id                  = new Guid($"22222222-2222-2222-2222-22222222220{i + 1}"),
@@ -270,7 +378,7 @@ public record CreateInstanceRequest(
     string? AssigneeId = null
 );
 
-public record CreateProcessRequest(
+public record UpsertProcessRequest(
     string  Name,
     string? Description,
     Guid?   TenantId,
@@ -278,6 +386,7 @@ public record CreateProcessRequest(
     string? AccentColor,
     string? IconClass,
     string? AppSlug,
+    string? FormSchema,
     List<StepRequest> Steps
 );
 
@@ -287,3 +396,5 @@ public record StepRequest(
     bool    AllowBacktracking   = true,
     bool    CanSkip             = false
 );
+
+public record CreateDeploymentRequest(Guid WorkflowProcessId, Guid TenantId);

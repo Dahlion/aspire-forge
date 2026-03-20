@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
     public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
+    public DbSet<WorkflowDeployment> WorkflowDeployments => Set<WorkflowDeployment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -129,6 +130,14 @@ public class AppDbContext : DbContext
             entity.Property(e => e.IconClass).HasMaxLength(60);
             entity.Property(e => e.AppSlug).HasMaxLength(60);
             entity.HasMany(e => e.Steps).WithOne().HasForeignKey(s => s.WorkflowProcessId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkflowDeployment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.WorkflowProcessId, e.TenantId }).IsUnique();
+            entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<WorkflowStep>(entity =>
@@ -280,6 +289,9 @@ public class WorkflowProcess
     public string IconClass { get; set; } = "bi-diagram-3-fill";
     [MaxLength(60)]
     public string? AppSlug { get; set; }
+
+    // Form schema: JSON array of field definitions used when creating instances
+    public string? FormSchema { get; set; }
 }
 
 // A specific step in the blueprint
@@ -315,6 +327,18 @@ public class WorkflowInstance
 
     public WorkflowProcess? Process { get; set; }
     public WorkflowStep? CurrentStep { get; set; }
+}
+
+// Links a WorkflowProcess to a Tenant — the admin "deploys" an app to a tenant
+public class WorkflowDeployment
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid WorkflowProcessId { get; set; }
+    public Guid TenantId { get; set; }
+    public DateTimeOffset DeployedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public WorkflowProcess? Process { get; set; }
+    public Tenant? Tenant { get; set; }
 }
 
 // Audit trail of every move
