@@ -1,6 +1,28 @@
 @AspireForge.ApiService_HostAddress = http://localhost:5236
 
-GET {{AspireForge.ApiService_HostAddress}}/weatherforecast/
+### Health check
+GET {{AspireForge.ApiService_HostAddress}}/api/hello
 Accept: application/json
+
+###
+
+### Authenticated user info (requires Bearer token)
+GET {{AspireForge.ApiService_HostAddress}}/api/me
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
+### Admin dashboard (requires platform_admin role)
+GET {{AspireForge.ApiService_HostAddress}}/api/admin/dashboard
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
+### List tenants
+GET {{AspireForge.ApiService_HostAddress}}/api/admin/tenants
+Accept: application/json
+Authorization: Bearer {{token}}
 
 ###

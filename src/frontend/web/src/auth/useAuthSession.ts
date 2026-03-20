@@ -62,12 +62,15 @@ export function useAuthSession() {
         }
     };
 
+    const username = keycloak.tokenParsed?.preferred_username as string | undefined ?? "";
+
     return {
         ready,
         authenticated,
         busy,
         roles,
         canManageTenants,
+        username,
         login,
         logout,
     };

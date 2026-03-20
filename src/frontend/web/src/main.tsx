@@ -8,7 +8,7 @@ import "./index.css";
 async function bootstrap() {
     try {
         await keycloak.init({
-            onLoad: "login-required",
+            onLoad: "check-sso",
             pkceMethod: "S256",
             checkLoginIframe: false,
         });
