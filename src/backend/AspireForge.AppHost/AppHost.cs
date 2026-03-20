@@ -8,7 +8,7 @@ var pgServer = builder
     .AddAzurePostgresFlexibleServer("pg")
     .WithPasswordAuthentication()
     .RunAsContainer(cfg => cfg
-        .WithPgAdmin()
+        .WithPgAdmin(pd => pd.WithHostPort(5050))
         .WithDataVolume()
         .WithLifetime(ContainerLifetime.Persistent));
 
