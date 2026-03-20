@@ -1,10 +1,18 @@
 import { useEffect, useRef } from "react";
-import { Chart } from "chart.js";
+import {
+  Chart,
+  DoughnutController,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import { DataTable } from "../../../lib/DataTable";
 import { MetricCard } from "./MetricCard";
 import type { DashboardData } from "../../../types/admin";
 import type { AdminRoute } from "../routing";
 import type { DataTableAction } from "../../../lib/DataTable";
+
+Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
 type DashboardViewProps = {
     dashboard: DashboardData | null;
