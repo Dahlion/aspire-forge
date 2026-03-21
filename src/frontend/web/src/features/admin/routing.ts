@@ -1,14 +1,13 @@
 export type AdminRoute =
     | { kind: "dashboard" }
-    | { kind: "tenants" }
     | { kind: "tenant"; tenantId: string }
-    | { kind: "plans" }
-    | { kind: "billing" }
-    | { kind: "leads" }
-    | { kind: "toolbox" }
-    | { kind: "workflows" }
-    | { kind: "microapps" }
-    | { kind: "suites" };
+    | { kind: "subscription-manager" }
+    | { kind: "business-manager" }
+    | { kind: "marketing-manager" }
+    | { kind: "client-manager" }
+    | { kind: "form-designer" }
+    | { kind: "app-designer" }
+    | { kind: "toolbox" };
 
 export function parseAdminHashRoute(): AdminRoute {
     const raw = window.location.hash.replace(/^#/, "") || "/admin/dashboard";
@@ -16,34 +15,32 @@ export function parseAdminHashRoute(): AdminRoute {
 
     if (parts[0] !== "admin") return { kind: "dashboard" };
 
-    if (parts.length === 3 && parts[1] === "tenants") {
+    if (parts.length === 3 && parts[1] === "clients") {
         return { kind: "tenant", tenantId: parts[2] };
     }
 
     switch (parts[1]) {
-        case "tenants":  return { kind: "tenants" };
-        case "plans":    return { kind: "plans" };
-        case "billing":  return { kind: "billing" };
-        case "leads":    return { kind: "leads" };
-        case "toolbox":  return { kind: "toolbox" };
-        case "workflows":  return { kind: "workflows" };
-        case "microapps":  return { kind: "microapps" };
-        case "suites":     return { kind: "suites" };
-        default:           return { kind: "dashboard" };
+        case "subscription-manager": return { kind: "subscription-manager" };
+        case "business-manager":     return { kind: "business-manager" };
+        case "marketing-manager":    return { kind: "marketing-manager" };
+        case "clients":              return { kind: "client-manager" };
+        case "form-designer":        return { kind: "form-designer" };
+        case "app-designer":         return { kind: "app-designer" };
+        case "toolbox":              return { kind: "toolbox" };
+        default:                     return { kind: "dashboard" };
     }
 }
 
 export function navigateToAdminRoute(route: AdminRoute) {
     switch (route.kind) {
-        case "dashboard": window.location.hash = "/admin/dashboard"; break;
-        case "tenants":   window.location.hash = "/admin/tenants";   break;
-        case "plans":     window.location.hash = "/admin/plans";     break;
-        case "billing":   window.location.hash = "/admin/billing";   break;
-        case "leads":     window.location.hash = "/admin/leads";     break;
-        case "toolbox":   window.location.hash = "/admin/toolbox";   break;
-        case "tenant":    window.location.hash = `/admin/tenants/${route.tenantId}`; break;
-        case "workflows":  window.location.hash = "/admin/workflows";  break;
-        case "microapps":  window.location.hash = "/admin/microapps";  break;
-        case "suites":     window.location.hash = "/admin/suites";     break;
+        case "dashboard":            window.location.hash = "/admin/dashboard";            break;
+        case "subscription-manager": window.location.hash = "/admin/subscription-manager"; break;
+        case "business-manager":     window.location.hash = "/admin/business-manager";     break;
+        case "marketing-manager":    window.location.hash = "/admin/marketing-manager";    break;
+        case "client-manager":       window.location.hash = "/admin/clients";              break;
+        case "form-designer":        window.location.hash = "/admin/form-designer";        break;
+        case "app-designer":         window.location.hash = "/admin/app-designer";         break;
+        case "toolbox":              window.location.hash = "/admin/toolbox";              break;
+        case "tenant":               window.location.hash = `/admin/clients/${route.tenantId}`; break;
     }
 }

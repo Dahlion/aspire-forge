@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 
 // --- EF Core (Postgres) ---
-builder.AddNpgsqlDbContext<AppDbContext>("Postgres");
+builder.AddNpgsqlDbContext<AppDbContext>("dbSeacoastDevops");
 
 // --- Redis ---
 builder.AddRedisClient("Redis");
@@ -118,10 +118,10 @@ await app.RunAsync();
 
 static bool IsAdmin(ClaimsPrincipal user)
 {
-    if (user.Claims.Any(c => (c.Type is ClaimTypes.Role or "role" or "roles") && c.Value.Equals("platform_admin", StringComparison.OrdinalIgnoreCase)))
+    if (user.Claims.Any(c => (c.Type is ClaimTypes.Role or "role" or "roles") && c.Value.Equals("seacoast_owneradmin", StringComparison.OrdinalIgnoreCase)))
         return true;
 
     return user.Claims.Any(c =>
         c.Type.Equals("realm_access", StringComparison.OrdinalIgnoreCase)
-        && c.Value.Contains("\"platform_admin\"", StringComparison.OrdinalIgnoreCase));
+        && c.Value.Contains("\"seacoast_owneradmin\"", StringComparison.OrdinalIgnoreCase));
 }

@@ -1,4 +1,4 @@
-export const PLATFORM_ADMIN_ROLE = "platform_admin";
+export const PLATFORM_ADMIN_ROLE = "seacoast_owneradmin";
 
 export function hasRole(roles: Set<string>, role: string): boolean {
     return roles.has(role.toLowerCase());

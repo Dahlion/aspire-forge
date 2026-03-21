@@ -160,13 +160,13 @@ export function useAdminManagement(isEnabled: boolean) {
             setTenantDetail(null);
         }
 
-        if (route.kind === "plans") {
+        if (route.kind === "subscription-manager") {
             loadPlans().catch((e: unknown) => setErrorMessage(errorToMessage(e, "Failed to load plans.")));
         }
-        if (route.kind === "billing") {
+        if (route.kind === "business-manager") {
             loadInvoices().catch((e: unknown) => setErrorMessage(errorToMessage(e, "Failed to load invoices.")));
         }
-        if (route.kind === "leads") {
+        if (route.kind === "client-manager") {
             loadLeads().catch((e: unknown) => setErrorMessage(errorToMessage(e, "Failed to load leads.")));
         }
     }, [route, isEnabled, loadTenantDetail, loadPlans, loadInvoices, loadLeads]);
@@ -200,7 +200,7 @@ export function useAdminManagement(isEnabled: boolean) {
         try {
             await deleteTenant(tenantDetail.id);
             await Promise.all([loadTenants(), loadDashboard()]);
-            navigateToAdminRoute({ kind: "tenants" });
+            navigateToAdminRoute({ kind: "client-manager" });
         } catch (e: unknown) { setErrorMessage(errorToMessage(e, "Failed to delete tenant.")); }
         finally { setBusy(false); }
     };

@@ -1,26 +1,39 @@
 services:
+
   postgres:
     image: postgres:16
-    container_name: aspireforge-postgres
+    container_name: SeacoastDevOpsDbServer
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: dbSeacoastDevops
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d dbSeacoastDevops"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: SeacoastDevOps-pgAdmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@seacoastdevops.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7
-    container_name: aspireforge-redis
+    container_name: SeacoastDevOps-Redis
     ports:
-      - "${REDIS_PORT}:6379"
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -29,13 +42,13 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    container_name: aspireforge-keycloak
+    container_name: SeacoastDevOps-Keycloak
     command: ["start-dev", "--import-realm"]
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
-      - "${KEYCLOAK_PORT}:8080"
+      - "8080:8080"
     volumes:
       - ../docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
       - ../docker/keycloak/Themes:/opt/keycloak/themes:ro
@@ -47,23 +60,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-        
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: SeacoastDevOps-Mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: SeacoastDevOps-Azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azuritedata:/data
+
 volumes:
   pgdata:
-
-mailpit:
-  image: axllent/mailpit
-  container_name: aspireforge-mailpit
-  ports:
-    - "8025:8025"
-    - "1025:1025"
-
-azurite:
-  image: mcr.microsoft.com/azure-storage/azurite
-  container_name: aspireforge-azurite
-  ports:
-    - "10000:10000"
-    - "10001:10001"
-    - "10002:10002"
-  volumes:
-    - azuritedata:/data
+  azuritedata:

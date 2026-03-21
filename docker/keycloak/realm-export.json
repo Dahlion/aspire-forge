@@ -18,7 +18,7 @@
   "roles": {
     "realm": [
       {
-        "name": "platform_admin",
+        "name": "seacoast_owneradmin",
         "description": "Full administrative access across all tenants and subscriptions."
       },
       {
@@ -47,7 +47,7 @@
         {
           "name": "admins",
           "realmRoles": [
-            "platform_admin",
+            "seacoast_owneradmin",
             "subscription_manager"
           ]
         }
@@ -178,7 +178,7 @@
         }
       ],
       "realmRoles": [
-        "platform_admin",
+        "seacoast_owneradmin",
         "subscription_manager",
         "tenant_admin",
         "tenant_user_manager"
@@ -208,7 +208,7 @@
         }
       ],
       "realmRoles": [
-        "platform_admin",
+        "seacoast_owneradmin",
         "subscription_manager",
         "tenant_admin",
         "tenant_user_manager"

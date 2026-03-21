@@ -21,17 +21,16 @@ type NavItemProps = {
     label: string;
     active: boolean;
     onClick: () => void;
-    badge?: number;
+    badge?: number | string;
+    badgeVariant?: string;
 };
 
-function NavItem({ icon, label, active, onClick, badge }: NavItemProps) {
+function NavItem({ icon, label, active, onClick, badge, badgeVariant = "secondary" }: NavItemProps) {
     return (
         <button
             type="button"
             className={`btn btn-block text-left px-3 py-2 mb-1 d-flex align-items-center ${
-                active
-                    ? "btn-primary font-weight-bold"
-                    : "btn-light text-secondary"
+                active ? "btn-primary font-weight-bold" : "btn-light text-secondary"
             }`}
             style={{ borderRadius: 6, fontSize: "0.9rem" }}
             onClick={onClick}
@@ -39,9 +38,17 @@ function NavItem({ icon, label, active, onClick, badge }: NavItemProps) {
             <i className={`bi ${icon} mr-2`} style={{ width: 16, textAlign: "center" }} />
             <span className="flex-grow-1">{label}</span>
             {badge !== undefined && (
-                <span className={`badge badge-${active ? "light" : "secondary"} ml-1`}>{badge}</span>
+                <span className={`badge badge-${active ? "light" : badgeVariant} ml-1`}>{badge}</span>
             )}
         </button>
+    );
+}
+
+function SectionLabel({ label }: { label: string }) {
+    return (
+        <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">
+            {label}
+        </div>
     );
 }
 
@@ -60,6 +67,7 @@ export function AdminSidebar({
     onNavigate,
 }: AdminSidebarProps) {
     const isActive = (kind: AdminRoute["kind"]) => route.kind === kind;
+    const isClientSection = isActive("client-manager") || isActive("tenant");
 
     return (
         <div className="d-flex flex-column gap-3">
@@ -67,49 +75,84 @@ export function AdminSidebar({
             <div className="card shadow-sm">
                 <div
                     className="card-header py-2 px-3"
-                    style={{ background: "#2F4F4F", borderRadius: "6px 6px 0 0" }}
+                    style={{ background: "#1a3a4a", borderRadius: "6px 6px 0 0" }}
                 >
                     <span className="text-white font-weight-bold small text-uppercase">
-                        <i className="bi bi-shield-lock-fill mr-1" /> Admin Portal
+                        <i className="bi bi-shield-lock-fill mr-1" /> Seacoast DevOps
                     </span>
+                    <div className="text-white-50" style={{ fontSize: "0.72rem" }}>Owner Admin Dashboard</div>
                 </div>
                 <div className="card-body py-2 px-2">
-                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1">Overview</div>
-                    <NavItem icon="bi-speedometer2" label="Dashboard" active={isActive("dashboard")}
-                        onClick={() => onNavigate({ kind: "dashboard" })} />
 
-                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">Clients</div>
-                    <NavItem icon="bi-building" label="Tenants" active={isActive("tenants") || isActive("tenant")}
-                        badge={tenants.length} onClick={() => onNavigate({ kind: "tenants" })} />
-                    <NavItem icon="bi-funnel-fill" label="Leads / CRM" active={isActive("leads")}
-                        onClick={() => onNavigate({ kind: "leads" })} />
+                    <SectionLabel label="Overview" />
+                    <NavItem
+                        icon="bi-speedometer2"
+                        label="Stats"
+                        active={isActive("dashboard")}
+                        onClick={() => onNavigate({ kind: "dashboard" })}
+                    />
 
-                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">Billing</div>
-                    <NavItem icon="bi-receipt" label="Invoices" active={isActive("billing")}
-                        onClick={() => onNavigate({ kind: "billing" })} />
-                    <NavItem icon="bi-box-seam-fill" label="Plans" active={isActive("plans")}
-                        onClick={() => onNavigate({ kind: "plans" })} />
+                    <SectionLabel label="Tools" />
 
-                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">App Builder</div>
-                    <NavItem icon="bi-diagram-3-fill" label="Workflows" active={isActive("workflows")}
-                        onClick={() => onNavigate({ kind: "workflows" })} />
-                    <NavItem icon="bi-grid-3x3-gap-fill" label="Micro Apps" active={isActive("microapps")}
-                        onClick={() => onNavigate({ kind: "microapps" })} />
-                    <NavItem icon="bi-collection-fill" label="App Suites" active={isActive("suites")}
-                        onClick={() => onNavigate({ kind: "suites" })} />
+                    <NavItem
+                        icon="bi-people-fill"
+                        label="Client Manager"
+                        active={isClientSection}
+                        badge={tenants.length}
+                        onClick={() => onNavigate({ kind: "client-manager" })}
+                    />
 
-                    <div className="small text-muted text-uppercase font-weight-bold px-2 py-1 mb-1 mt-2">Dev Tools</div>
-                    <NavItem icon="bi-tools" label="Toolbox" active={isActive("toolbox")}
-                        onClick={() => onNavigate({ kind: "toolbox" })} />
+                    <NavItem
+                        icon="bi-box-seam-fill"
+                        label="Subscription Manager"
+                        active={isActive("subscription-manager")}
+                        onClick={() => onNavigate({ kind: "subscription-manager" })}
+                    />
+
+                    <NavItem
+                        icon="bi-briefcase-fill"
+                        label="Business Manager"
+                        active={isActive("business-manager")}
+                        onClick={() => onNavigate({ kind: "business-manager" })}
+                    />
+
+                    <NavItem
+                        icon="bi-megaphone-fill"
+                        label="Marketing Manager"
+                        active={isActive("marketing-manager")}
+                        onClick={() => onNavigate({ kind: "marketing-manager" })}
+                    />
+
+                    <NavItem
+                        icon="bi-file-earmark-richtext-fill"
+                        label="Form Designer"
+                        active={isActive("form-designer")}
+                        onClick={() => onNavigate({ kind: "form-designer" })}
+                    />
+
+                    <NavItem
+                        icon="bi-grid-1x2-fill"
+                        label="App Designer"
+                        active={isActive("app-designer")}
+                        onClick={() => onNavigate({ kind: "app-designer" })}
+                    />
+
+                    <SectionLabel label="Dev Tools" />
+                    <NavItem
+                        icon="bi-tools"
+                        label="Toolbox"
+                        active={isActive("toolbox")}
+                        onClick={() => onNavigate({ kind: "toolbox" })}
+                    />
 
                 </div>
             </div>
 
-            {/* Tenant quick-list (shown when on tenants/tenant routes) */}
-            {(isActive("tenants") || isActive("tenant")) && (
+            {/* Client quick-list — shown when in Client Manager section */}
+            {isClientSection && (
                 <div className="card shadow-sm">
                     <div className="card-header d-flex justify-content-between align-items-center py-2 px-3">
-                        <span className="small font-weight-bold text-muted text-uppercase">All Tenants</span>
+                        <span className="small font-weight-bold text-muted text-uppercase">All Clients</span>
                         {loadingTenants && (
                             <div className="spinner-border spinner-border-sm text-primary" role="status">
                                 <span className="sr-only">Loading…</span>
@@ -117,7 +160,7 @@ export function AdminSidebar({
                         )}
                     </div>
                     {tenants.length === 0 ? (
-                        <div className="card-body text-muted small px-3 py-2">No tenants yet.</div>
+                        <div className="card-body text-muted small px-3 py-2">No clients yet.</div>
                     ) : (
                         <div className="list-group list-group-flush" style={{ maxHeight: "280px", overflowY: "auto" }}>
                             {tenants.map(tenant => (
@@ -143,13 +186,13 @@ export function AdminSidebar({
                         </div>
                     )}
 
-                    {/* Quick create tenant */}
+                    {/* Quick create client */}
                     <div className="card-footer py-2 px-3">
                         <div className="small font-weight-bold text-muted mb-2">
                             <i className="bi bi-plus-circle mr-1" />Quick Create
                         </div>
                         <div className="form-group mb-2">
-                            <input type="text" className="form-control form-control-sm" placeholder="Tenant name"
+                            <input type="text" className="form-control form-control-sm" placeholder="Client name"
                                 value={newTenantName} onChange={e => setNewTenantName(e.target.value)} />
                         </div>
                         <div className="form-group mb-2">
@@ -164,7 +207,7 @@ export function AdminSidebar({
                         <button className="btn btn-primary btn-sm btn-block" disabled={busy || !newTenantName.trim()}
                             onClick={onCreateTenant}>
                             {busy ? <span className="spinner-border spinner-border-sm mr-1" role="status" /> : <i className="bi bi-plus mr-1" />}
-                            Create
+                            Create Client
                         </button>
                     </div>
                 </div>

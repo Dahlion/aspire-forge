@@ -1,22 +1,22 @@
 using Aspire.Hosting;
-using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// --- Postgres (Azure Flexible Server → local container in dev) ---
+// --- Postgres (fixed credentials — values in appsettings.json Parameters section) ---
+var pgUser = builder.AddParameter("pg-username");
+var pgPass = builder.AddParameter("pg-password", secret: true);
+
 var pgServer = builder
-    .AddAzurePostgresFlexibleServer("pg")
-    .WithPasswordAuthentication()
-    .RunAsContainer(cfg => cfg
-    .WithPgAdmin(pd => {
+    .AddPostgres("SeacoastDevOpsDbServer", userName: pgUser, password: pgPass)
+    .WithPgAdmin(pd =>
+    {
         pd.WithHostPort(5050);
-        pd.WithImage("dpage/pgadmin4"); // The official image
-    
+        pd.WithImage("dpage/pgadmin4");
     })
     .WithDataVolume()
-    .WithLifetime(ContainerLifetime.Persistent));
-    
-var postgresDb = pgServer.AddDatabase("Postgres");
+    .WithLifetime(ContainerLifetime.Persistent);
+
+var postgresDb = pgServer.AddDatabase("dbSeacoastDevops");
 
 // --- Redis ---
 var redis = builder.AddRedis("Redis")

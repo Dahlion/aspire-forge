@@ -84,7 +84,7 @@ export default function App() {
                                 </strong>
                             </div>
                             <div className="card-body">
-                                <p>Your account does not include the <code>platform_admin</code> role.</p>
+                                <p>Your account does not include the <code>seacoast_owneradmin</code> role.</p>
                                 <p className="mb-0 text-muted">Ask a platform administrator to assign the role in Keycloak.</p>
                             </div>
                         </div>

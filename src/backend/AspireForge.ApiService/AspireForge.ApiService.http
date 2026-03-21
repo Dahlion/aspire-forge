@@ -13,7 +13,7 @@ Authorization: Bearer {{token}}
 
 ###
 
-### Admin dashboard (requires platform_admin role)
+### Admin dashboard (requires seacoast_owneradmin role)
 GET {{AspireForge.ApiService_HostAddress}}/api/admin/dashboard
 Accept: application/json
 Authorization: Bearer {{token}}

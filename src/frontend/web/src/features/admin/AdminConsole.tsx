@@ -2,14 +2,13 @@ import { useAdminManagement } from "./hooks/useAdminManagement";
 import { AdminSidebar } from "./components/AdminSidebar";
 import { DashboardView } from "./components/DashboardView";
 import { TenantDetailView } from "./components/TenantDetailView";
-import { TenantsView } from "./components/TenantsView";
-import { PlansView } from "./components/PlansView";
-import { BillingView } from "./components/BillingView";
-import { LeadsView } from "./components/LeadsView";
 import { ToolboxView } from "./components/ToolboxView";
-import { WorkflowsView } from "./components/WorkflowsView";
-import { MicroAppsView } from "./components/MicroAppsView";
-import { AppSuitesView } from "./components/AppSuitesView";
+import { ClientManagerView } from "./components/ClientManagerView";
+import { SubscriptionManagerView } from "./components/SubscriptionManagerView";
+import { BusinessManagerView } from "./components/BusinessManagerView";
+import { MarketingManagerView } from "./components/MarketingManagerView";
+import { FormDesignerView } from "./components/FormDesignerView";
+import { AppDesignerView } from "./components/AppDesignerView";
 
 type AdminConsoleProps = {
     enabled: boolean;
@@ -58,11 +57,17 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     />
                 )}
 
-                {admin.route.kind === "tenants" && (
-                    <TenantsView
+                {admin.route.kind === "client-manager" && (
+                    <ClientManagerView
                         tenants={admin.tenants}
                         loadingTenants={admin.loadingTenants}
+                        leads={admin.leads}
+                        loadingLeads={admin.loadingLeads}
+                        busy={admin.busy}
                         onNavigate={admin.navigateToAdminRoute}
+                        onCreateLead={admin.createLeadAction}
+                        onUpdateLead={admin.updateLeadAction}
+                        onDeleteLead={admin.deleteLeadAction}
                     />
                 )}
 
@@ -112,8 +117,8 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     />
                 )}
 
-                {admin.route.kind === "plans" && (
-                    <PlansView
+                {admin.route.kind === "subscription-manager" && (
+                    <SubscriptionManagerView
                         plans={admin.plans}
                         loadingPlans={admin.loadingPlans}
                         busy={admin.busy}
@@ -123,8 +128,8 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     />
                 )}
 
-                {admin.route.kind === "billing" && (
-                    <BillingView
+                {admin.route.kind === "business-manager" && (
+                    <BusinessManagerView
                         invoices={admin.invoices}
                         loadingInvoices={admin.loadingInvoices}
                         busy={admin.busy}
@@ -133,21 +138,10 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     />
                 )}
 
-                {admin.route.kind === "leads" && (
-                    <LeadsView
-                        leads={admin.leads}
-                        loadingLeads={admin.loadingLeads}
-                        busy={admin.busy}
-                        onCreateLead={admin.createLeadAction}
-                        onUpdateLead={admin.updateLeadAction}
-                        onDeleteLead={admin.deleteLeadAction}
-                    />
-                )}
-
-                {admin.route.kind === "workflows"  && <WorkflowsView />}
-                {admin.route.kind === "microapps"  && <MicroAppsView />}
-                {admin.route.kind === "suites"     && <AppSuitesView />}
-                {admin.route.kind === "toolbox"    && <ToolboxView />}
+                {admin.route.kind === "marketing-manager" && <MarketingManagerView />}
+                {admin.route.kind === "form-designer"      && <FormDesignerView />}
+                {admin.route.kind === "app-designer"       && <AppDesignerView />}
+                {admin.route.kind === "toolbox"            && <ToolboxView />}
             </div>
         </div>
     );
