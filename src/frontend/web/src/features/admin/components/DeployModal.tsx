@@ -68,25 +68,32 @@ export function DeployModal({ process, onClose }: Props) {
                 top: "50%", left: "50%",
                 transform: "translate(-50%, -50%)",
                 width: "min(560px, 96vw)",
-                background: "#fff",
-                borderRadius: 10,
+                backgroundColor: "#0d1720",
+                backgroundImage: "linear-gradient(0deg, rgba(150, 190, 170, 0.18) 0%, #0d1720 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.95)",
+                borderRadius: 16,
+                overflow: "hidden",
                 zIndex: 1050,
-                boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
+                color: "#f3f7f5",
                 display: "flex",
                 flexDirection: "column",
                 maxHeight: "80vh",
             }}>
                 {/* Header */}
-                <div className="d-flex align-items-center justify-content-between p-4 border-bottom">
+                <div
+                    className="d-flex align-items-center justify-content-between p-3"
+                    style={{
+                        background: "linear-gradient(180deg, #3f8b79 0%, #2f6f62 100%)",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.95)",
+                    }}
+                >
                     <div className="d-flex align-items-center" style={{ gap: "0.75rem" }}>
-                        <div
-                            className="d-flex align-items-center justify-content-center rounded"
-                            style={{ width: 36, height: 36, background: process.primaryColor, color: "#fff" }}
-                        >
-                            <i className={`bi ${process.iconClass}`} />
-                        </div>
                         <div>
-                            <h5 className="mb-0 font-weight-bold">Deploy "{process.name}"</h5>
+                            <h5 className="mb-0 font-weight-bold d-flex align-items-center" style={{ gap: "0.6rem", color: "#f3f7f5" }}>
+                                <img src="/seacoastlogo.png" alt="Seacoast" style={{ width: 26, height: 26, objectFit: "contain" }} />
+                                <span>Deploy "{process.name}"</span>
+                            </h5>
                             <small className="text-muted">Toggle access per tenant</small>
                         </div>
                     </div>
@@ -96,7 +103,13 @@ export function DeployModal({ process, onClose }: Props) {
                 </div>
 
                 {/* Body */}
-                <div className="overflow-auto flex-grow-1 p-3">
+                <div
+                    className="overflow-auto flex-grow-1 p-3"
+                    style={{
+                        backgroundColor: "#0d1720",
+                        backgroundImage: "linear-gradient(0deg, rgba(150, 190, 170, 0.18) 0%, #0d1720 100%)",
+                    }}
+                >
                     {loading ? (
                         <div className="text-center py-4"><div className="spinner-border text-primary spinner-border-sm" /></div>
                     ) : tenants.length === 0 ? (
@@ -113,8 +126,8 @@ export function DeployModal({ process, onClose }: Props) {
                                     key={tenant.id}
                                     className="d-flex align-items-center justify-content-between p-3 rounded mb-2"
                                     style={{
-                                        background:  isDeployed ? `${process.primaryColor}12` : "#f8f9fa",
-                                        border:      `1.5px solid ${isDeployed ? process.primaryColor : "#dee2e6"}`,
+                                        background: isDeployed ? "rgba(63, 139, 121, 0.2)" : "rgba(13, 23, 32, 0.55)",
+                                        border: `1px solid ${isDeployed ? process.primaryColor : "rgba(255,255,255,0.95)"}`,
                                         transition:  "all 0.15s",
                                     }}
                                 >
@@ -143,7 +156,14 @@ export function DeployModal({ process, onClose }: Props) {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-top d-flex justify-content-between align-items-center">
+                <div
+                    className="p-3 border-top d-flex flex-column align-items-center"
+                    style={{
+                        background: "linear-gradient(180deg, #3f8b79 0%, #2f6f62 100%)",
+                        borderTop: "1px solid rgba(255, 255, 255, 0.95)",
+                        gap: "0.75rem",
+                    }}
+                >
                     <small className="text-muted">
                         <i className="bi bi-check2-circle mr-1 text-success" />
                         {deployments.length} tenant{deployments.length !== 1 ? "s" : ""} have access

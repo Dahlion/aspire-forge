@@ -20,6 +20,16 @@ import type {
     UpdateSubscriptionInput,
     UpdateTenantInput,
 } from "../../types/admin";
+import type {
+    AppSuite,
+    AppDomain,
+    AppLink,
+    CreateMicroAppInput,
+    CreateSuiteInput,
+    MicroApp,
+    UpdateMicroAppInput,
+    UpdateSuiteInput,
+} from "../../types/microapp";
 
 export const SUBSCRIPTION_STATUSES = ["trialing", "active", "past_due", "canceled"] as const;
 export const INVOICE_STATUSES = ["draft", "sent", "paid", "overdue", "void"] as const;
@@ -196,4 +206,107 @@ export function createNote(tenantId: string, input: CreateNoteInput) {
 
 export function deleteNote(tenantId: string, noteId: string) {
     return apiClient(`/api/admin/tenants/${tenantId}/notes/${noteId}`, { method: "DELETE" });
+}
+
+// ── Micro Apps ─────────────────────────────────────────────────────────────────
+
+export function getMicroApps(tenantId?: string, status?: string) {
+    const params = new URLSearchParams();
+    if (tenantId) params.set("tenantId", tenantId);
+    if (status)   params.set("status", status);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    return apiClient<MicroApp[]>(`/api/microapps${qs}`);
+}
+
+export function getMicroApp(id: string) {
+    return apiClient<MicroApp>(`/api/microapps/${id}`);
+}
+
+export function createMicroApp(input: CreateMicroAppInput) {
+    return apiClient<MicroApp>("/api/microapps", {
+        method: "POST",
+        body: JSON.stringify(input),
+    });
+}
+
+export function updateMicroApp(id: string, input: UpdateMicroAppInput) {
+    return apiClient<MicroApp>(`/api/microapps/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+    });
+}
+
+export function deleteMicroApp(id: string) {
+    return apiClient(`/api/microapps/${id}`, { method: "DELETE" });
+}
+
+// ── Domains ────────────────────────────────────────────────────────────────────
+
+export function getDomains(microAppId: string) {
+    return apiClient<AppDomain[]>(`/api/microapps/${microAppId}/domains`);
+}
+
+export function addDomain(microAppId: string, hostname: string, isPrimary: boolean) {
+    return apiClient<AppDomain>(`/api/microapps/${microAppId}/domains`, {
+        method: "POST",
+        body: JSON.stringify({ hostname, isPrimary }),
+    });
+}
+
+export function verifyDomain(microAppId: string, domainId: string) {
+    return apiClient<AppDomain>(`/api/microapps/${microAppId}/domains/${domainId}/verify`, {
+        method: "POST",
+    });
+}
+
+export function deleteDomain(microAppId: string, domainId: string) {
+    return apiClient(`/api/microapps/${microAppId}/domains/${domainId}`, { method: "DELETE" });
+}
+
+// ── App Links ──────────────────────────────────────────────────────────────────
+
+export function getLinks(microAppId: string) {
+    return apiClient<AppLink[]>(`/api/microapps/${microAppId}/links`);
+}
+
+export function addLink(microAppId: string, targetMicroAppId: string, linkType: string, label?: string) {
+    return apiClient<AppLink>(`/api/microapps/${microAppId}/links`, {
+        method: "POST",
+        body: JSON.stringify({ targetMicroAppId, linkType, label }),
+    });
+}
+
+export function deleteLink(microAppId: string, linkId: string) {
+    return apiClient(`/api/microapps/${microAppId}/links/${linkId}`, { method: "DELETE" });
+}
+
+// ── App Suites ─────────────────────────────────────────────────────────────────
+
+export function getAppSuites(tenantId?: string) {
+    const qs = tenantId ? `?tenantId=${tenantId}` : "";
+    return apiClient<AppSuite[]>(`/api/appsuites${qs}`);
+}
+
+export function createAppSuite(input: CreateSuiteInput) {
+    return apiClient<AppSuite>("/api/appsuites", {
+        method: "POST",
+        body: JSON.stringify(input),
+    });
+}
+
+export function updateAppSuite(id: string, input: UpdateSuiteInput) {
+    return apiClient<AppSuite>(`/api/appsuites/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+    });
+}
+
+export function deleteAppSuite(id: string) {
+    return apiClient(`/api/appsuites/${id}`, { method: "DELETE" });
+}
+
+// ── Industry Seed ──────────────────────────────────────────────────────────────
+
+export function seedIndustryTemplates() {
+    return apiClient("/api/workflow/seed-industry", { method: "POST" });
 }

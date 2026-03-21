@@ -12,18 +12,140 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspireForge.ApiService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260320175010_[addingworkflows]")]
-    partial class addingworkflows
+    [Migration("20260321123432_InitialDatabaseCreate")]
+    partial class InitialDatabaseCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.2")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppDomain", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Hostname")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MicroAppId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SslStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Hostname")
+                        .IsUnique();
+
+                    b.HasIndex("MicroAppId");
+
+                    b.ToTable("AppDomains");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("LinkType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("SourceMicroAppId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetMicroAppId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetMicroAppId");
+
+                    b.HasIndex("SourceMicroAppId", "TargetMicroAppId")
+                        .IsUnique();
+
+                    b.ToTable("AppLinks");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppSuite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("IconClass")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("AppSuites");
+                });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.Invoice", b =>
                 {
@@ -141,6 +263,76 @@ namespace AspireForge.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Leads");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccentColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid?>("AppSuiteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("DeployedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("IconClass")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkflowProcessId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppSuiteId");
+
+                    b.HasIndex("WorkflowProcessId");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("MicroApps");
                 });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.Subscription", b =>
@@ -362,6 +554,31 @@ namespace AspireForge.ApiService.Migrations
                     b.ToTable("TenantNotes");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowDeployment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("DeployedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkflowProcessId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("WorkflowProcessId", "TenantId")
+                        .IsUnique();
+
+                    b.ToTable("WorkflowDeployments");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowHistory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -443,16 +660,38 @@ namespace AspireForge.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AccentColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("AppSlug")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("FormSchema")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IconClass")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uuid");
@@ -495,6 +734,47 @@ namespace AspireForge.ApiService.Migrations
                     b.ToTable("WorkflowSteps");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppDomain", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MicroApp", "MicroApp")
+                        .WithMany("Domains")
+                        .HasForeignKey("MicroAppId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MicroApp");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppLink", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MicroApp", "Source")
+                        .WithMany("OutboundLinks")
+                        .HasForeignKey("SourceMicroAppId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MicroApp", "Target")
+                        .WithMany()
+                        .HasForeignKey("TargetMicroAppId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Source");
+
+                    b.Navigation("Target");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppSuite", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.Invoice", b =>
                 {
                     b.HasOne("AspireForge.ApiService.Data.Subscription", "Subscription")
@@ -509,6 +789,32 @@ namespace AspireForge.ApiService.Migrations
                         .IsRequired();
 
                     b.Navigation("Subscription");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.AppSuite", "Suite")
+                        .WithMany("MicroApps")
+                        .HasForeignKey("AppSuiteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.WorkflowProcess", "Process")
+                        .WithMany()
+                        .HasForeignKey("WorkflowProcessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+
+                    b.Navigation("Suite");
 
                     b.Navigation("Tenant");
                 });
@@ -546,6 +852,25 @@ namespace AspireForge.ApiService.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowDeployment", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.WorkflowProcess", "Process")
+                        .WithMany()
+                        .HasForeignKey("WorkflowProcessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowInstance", b =>
                 {
                     b.HasOne("AspireForge.ApiService.Data.WorkflowStep", "CurrentStep")
@@ -572,6 +897,18 @@ namespace AspireForge.ApiService.Migrations
                         .HasForeignKey("WorkflowProcessId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.AppSuite", b =>
+                {
+                    b.Navigation("MicroApps");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>
+                {
+                    b.Navigation("Domains");
+
+                    b.Navigation("OutboundLinks");
                 });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.Tenant", b =>

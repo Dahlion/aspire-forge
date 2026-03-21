@@ -7,7 +7,9 @@ import { PlansView } from "./components/PlansView";
 import { BillingView } from "./components/BillingView";
 import { LeadsView } from "./components/LeadsView";
 import { ToolboxView } from "./components/ToolboxView";
-import { WorkflowsView } from "./components/WorkflowsView"; // <-- New Import
+import { WorkflowsView } from "./components/WorkflowsView";
+import { MicroAppsView } from "./components/MicroAppsView";
+import { AppSuitesView } from "./components/AppSuitesView";
 
 type AdminConsoleProps = {
     enabled: boolean;
@@ -142,10 +144,10 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     />
                 )}
 
-                {/* Workflow Routing */}
-                {admin.route.kind === "workflows" && <WorkflowsView />}
-
-                {admin.route.kind === "toolbox" && <ToolboxView />}
+                {admin.route.kind === "workflows"  && <WorkflowsView />}
+                {admin.route.kind === "microapps"  && <MicroAppsView />}
+                {admin.route.kind === "suites"     && <AppSuitesView />}
+                {admin.route.kind === "toolbox"    && <ToolboxView />}
             </div>
         </div>
     );

@@ -21,6 +21,11 @@ public class AppDbContext : DbContext
     public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
     public DbSet<WorkflowDeployment> WorkflowDeployments => Set<WorkflowDeployment>();
 
+    public DbSet<AppSuite> AppSuites => Set<AppSuite>();
+    public DbSet<MicroApp> MicroApps => Set<MicroApp>();
+    public DbSet<AppDomain> AppDomains => Set<AppDomain>();
+    public DbSet<AppLink> AppLinks => Set<AppLink>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Tenant>(entity =>
@@ -151,6 +156,55 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId);
             entity.HasOne(e => e.CurrentStep).WithMany().HasForeignKey(e => e.CurrentStepId);
+        });
+
+        // ── Micro App Platform ─────────────────────────────────────────────
+
+        modelBuilder.Entity<AppSuite>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(120).IsRequired();
+            entity.Property(e => e.Slug).HasMaxLength(80).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.IconClass).HasMaxLength(60);
+            entity.Property(e => e.Color).HasMaxLength(7);
+            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MicroApp>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DisplayName).HasMaxLength(120).IsRequired();
+            entity.Property(e => e.Slug).HasMaxLength(80).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.PrimaryColor).HasMaxLength(7);
+            entity.Property(e => e.AccentColor).HasMaxLength(7);
+            entity.Property(e => e.IconClass).HasMaxLength(60);
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Suite).WithMany(s => s.MicroApps).HasForeignKey(e => e.AppSuiteId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+            entity.HasMany(e => e.Domains).WithOne(d => d.MicroApp).HasForeignKey(d => d.MicroAppId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AppDomain>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Hostname).HasMaxLength(253).IsRequired();
+            entity.Property(e => e.SslStatus).HasMaxLength(20).IsRequired();
+            entity.HasIndex(e => e.Hostname).IsUnique();
+        });
+
+        modelBuilder.Entity<AppLink>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.LinkType).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Label).HasMaxLength(100);
+            entity.HasOne(e => e.Source).WithMany(a => a.OutboundLinks).HasForeignKey(e => e.SourceMicroAppId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Target).WithMany().HasForeignKey(e => e.TargetMicroAppId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.SourceMicroAppId, e.TargetMicroAppId }).IsUnique();
         });
     }
 }
@@ -351,4 +405,95 @@ public class WorkflowHistory
     public string ActionBy { get; set; } = "";
     public string? Comments { get; set; }
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+}
+
+// ── Micro App Platform ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Logical grouping of micro apps belonging to a single tenant.
+/// Example: "EMS Operations Suite" contains Dispatch + Scheduling + Reporting apps.
+/// </summary>
+public class AppSuite
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = "";
+    public string Slug { get; set; } = "";
+    public string? Description { get; set; }
+    public string IconClass { get; set; } = "bi-grid-fill";
+    public string Color { get; set; } = "#2F4F4F";
+    public int SortOrder { get; set; } = 0;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public List<MicroApp> MicroApps { get; set; } = [];
+}
+
+/// <summary>
+/// A deployed workflow process instance for a tenant. First-class entity that extends
+/// WorkflowDeployment with branding overrides, custom domains, suite membership, and inter-app links.
+/// </summary>
+public class MicroApp
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid WorkflowProcessId { get; set; }
+    public Guid? AppSuiteId { get; set; }
+
+    public string DisplayName { get; set; } = "";   // can differ from process name
+    public string Slug { get; set; } = "";           // unique per tenant
+    public string? Description { get; set; }
+
+    // Branding overrides (fall back to WorkflowProcess values at runtime if empty)
+    public string PrimaryColor { get; set; } = "#2F4F4F";
+    public string AccentColor { get; set; } = "#4a9a9a";
+    public string IconClass { get; set; } = "bi-diagram-3-fill";
+
+    public string Status { get; set; } = "active";   // active, archived, suspended
+    public bool IsPublic { get; set; } = false;
+
+    public DateTimeOffset DeployedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public WorkflowProcess? Process { get; set; }
+    public AppSuite? Suite { get; set; }
+    public List<AppDomain> Domains { get; set; } = [];
+    public List<AppLink> OutboundLinks { get; set; } = [];
+}
+
+/// <summary>
+/// Custom hostname mapped to a specific MicroApp.
+/// Enables white-labelled deployments (e.g., ems.cityofacme.gov → EMS Dispatch app).
+/// </summary>
+public class AppDomain
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MicroAppId { get; set; }
+    public string Hostname { get; set; } = "";        // e.g. "ems.cityofacme.gov"
+    public bool IsPrimary { get; set; } = false;
+    public string SslStatus { get; set; } = "pending"; // pending, provisioned, failed
+    public DateTimeOffset? VerifiedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MicroApp? MicroApp { get; set; }
+}
+
+/// <summary>
+/// Typed directional relationship between two micro apps.
+/// Enables cross-app navigation, data handoff, and suite-level workflow chains.
+/// </summary>
+public class AppLink
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SourceMicroAppId { get; set; }
+    public Guid TargetMicroAppId { get; set; }
+    // related | child | data-feed | workflow-handoff
+    public string LinkType { get; set; } = "related";
+    public string? Label { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MicroApp? Source { get; set; }
+    public MicroApp? Target { get; set; }
 }

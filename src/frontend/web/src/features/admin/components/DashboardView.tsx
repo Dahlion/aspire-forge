@@ -14,6 +14,10 @@ import type { DataTableAction } from "../../../lib/DataTable";
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
+// Match Seacoast dark theme palette
+Chart.defaults.color = "#aac0b8";
+Chart.defaults.borderColor = "rgba(150,190,170,0.18)";
+
 type DashboardViewProps = {
     dashboard: DashboardData | null;
     loadingDashboard: boolean;
@@ -50,7 +54,7 @@ export function DashboardView({ dashboard, loadingDashboard, onNavigate }: Dashb
                         ],
                         backgroundColor: ["#2E8B57", "#6c757d"],
                         borderWidth: 2,
-                        borderColor: "#fff",
+                        borderColor: "#13202A",
                     },
                 ],
             },
@@ -82,7 +86,7 @@ export function DashboardView({ dashboard, loadingDashboard, onNavigate }: Dashb
                         data: [dashboard.activeSubscriptionCount, inactive],
                         backgroundColor: ["#2E8B57", "#6c757d"],
                         borderWidth: 2,
-                        borderColor: "#fff",
+                        borderColor: "#13202A",
                     },
                 ],
             },

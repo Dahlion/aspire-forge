@@ -71,11 +71,11 @@ export default function App() {
 
             {isAdminRoute ? (
                 authenticated && canManageTenants ? (
-                    <div className="container-xl px-4 pb-4">
+                    <div className="container-xl px-4 pt-4 pb-4">
                         <AdminConsole enabled={canManageTenants} />
                     </div>
                 ) : authenticated ? (
-                    <div className="container-xl px-4">
+                    <div className="container-xl px-4 pt-4">
                         <div className="card shadow-sm border-warning">
                             <div className="card-header bg-warning text-dark">
                                 <strong>

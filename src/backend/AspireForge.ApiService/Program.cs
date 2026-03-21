@@ -1,4 +1,5 @@
 using AspireForge.ApiService.Email;
+using AspireForge.ApiService.Middleware;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("default");
+app.UseTenantDomainResolution();   // resolve custom hostnames → MicroApp context
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -94,6 +96,18 @@ app.MapGet("/api/me", (HttpContext ctx) =>
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // If the DB has orphaned migration history rows (i.e. after a consolidation),
+    // wipe and recreate so MigrateAsync can apply the single InitialSchema cleanly.
+    try
+    {
+        var applied = (await db.Database.GetAppliedMigrationsAsync()).ToHashSet();
+        bool hasOrphaned = applied.Except(db.Database.GetMigrations()).Any();
+        if (hasOrphaned)
+            await db.Database.EnsureDeletedAsync();
+    }
+    catch { /* __EFMigrationsHistory doesn't exist yet — fresh DB, nothing to do */ }
+
     await db.Database.MigrateAsync();
 
     var blobService = scope.ServiceProvider.GetRequiredService<BlobServiceClient>();

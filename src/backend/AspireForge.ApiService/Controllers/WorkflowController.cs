@@ -366,6 +366,380 @@ public class WorkflowController : ControllerBase
 
         return Ok(new { message = "Seed complete.", processes = 2, instances = delegateInstanceEntities.Count + hireInstanceEntities.Count });
     }
+
+    // ── Industry Seed ──────────────────────────────────────────────────────────
+    // Creates realistic data for two verticals:
+    //   1. EMS Dispatch & Scheduling (City of Acme EMS tenant)
+    //   2. Government Contract Tracking – RFP/IDIQ/Task Order (Federal Contractors LLC tenant)
+
+    [HttpPost("seed-industry")]
+    public async Task<IActionResult> SeedIndustry()
+    {
+        // Fixed GUIDs so this endpoint is idempotent
+        var emsProcessId      = new Guid("c3d4e5f6-a7b8-9012-cdef-123456789012");
+        var contractProcessId = new Guid("d4e5f6a7-b8c9-0123-defa-234567890123");
+        var toProcessId       = new Guid("e5f6a7b8-c9d0-1234-efab-345678901234");
+        var emsTenantId       = new Guid("e6f7a8b9-c0d1-2345-fabc-456789012345");
+        var govTenantId       = new Guid("f7a8b9c0-d1e2-3456-abcd-567890123456");
+
+        if (await _db.WorkflowProcesses.AnyAsync(p =>
+                p.Id == emsProcessId || p.Id == contractProcessId || p.Id == toProcessId))
+            return Ok(new { message = "Industry seed data already exists." });
+
+        // ── EMS Dispatch Process ─────────────────────────────────────────
+
+        const string emsSchema = """
+            [
+              {"key":"incidentType","label":"Incident Type","type":"select","required":true,
+               "options":["Medical","Trauma","Cardiac Arrest","Fire Assist","Hazmat","MVC","BLS Transport","Psych"]},
+              {"key":"priority","label":"Priority","type":"select","required":true,
+               "options":["Priority 1 – Code 3 (Lights/Siren)","Priority 2 – Urgent","Priority 3 – Routine"]},
+              {"key":"unit","label":"Unit / Apparatus","type":"text","required":true},
+              {"key":"crewLead","label":"Crew Lead","type":"text","required":true},
+              {"key":"crewMembers","label":"Additional Crew","type":"text","required":false},
+              {"key":"location","label":"Incident Address / Location","type":"text","required":true},
+              {"key":"dispatchNotes","label":"Dispatch Notes","type":"textarea","required":false},
+              {"key":"patientCount","label":"Patient Count","type":"number","required":false},
+              {"key":"receivingFacility","label":"Receiving Facility","type":"text","required":false}
+            ]
+            """;
+
+        var emsSteps = new (string Name, string? Role, bool Back)[]
+        {
+            ("Shift Request",      "Dispatcher",       true),
+            ("Supervisor Review",  "Shift Supervisor", true),
+            ("Resource Check",     "Resources",        true),
+            ("Crew Assignment",    "Dispatcher",       true),
+            ("Confirmed",          "Crew Lead",        false),
+            ("Dispatched",         "Crew Lead",        false),
+            ("Incident Report",    "Crew Lead",        true),
+            ("Closed",             null,               false),
+        };
+
+        var emsProcess = new WorkflowProcess
+        {
+            Id           = emsProcessId,
+            Name         = "EMS Dispatch",
+            Description  = "Emergency Medical Services incident dispatch — from shift request through scene close and incident report.",
+            PrimaryColor = "#b71c1c",
+            AccentColor  = "#ef5350",
+            IconClass    = "bi-hospital-fill",
+            AppSlug      = "ems-dispatch",
+            FormSchema   = emsSchema,
+            Steps        = emsSteps.Select((s, i) => new WorkflowStep
+            {
+                Id                  = new Guid($"cccccccc-cccc-cccc-cccc-cccccccccc0{i + 1}"),
+                WorkflowProcessId   = emsProcessId,
+                Name                = s.Name,
+                Order               = i + 1,
+                DefaultAssigneeRole = s.Role,
+                AllowBacktracking   = s.Back,
+                CanSkip             = false,
+            }).ToList()
+        };
+
+        var emsInstances = new[]
+        {
+            ("Unit 12 – Medical, Main & 3rd",      0),
+            ("Unit 8 – MVC, I-95 Mile Marker 44",  5),
+            ("Unit 3 – Cardiac, Riverside Tower",   6),
+            ("Unit 7 – Trauma, Westfield Mall",     3),
+            ("Unit 5 – BLS Transport, Harbor Hosp", 4),
+            ("Unit 11 – Hazmat, Industrial Park",   1),
+        };
+
+        var emsInstanceEntities = emsInstances.Select((item, idx) => new WorkflowInstance
+        {
+            TenantId          = emsTenantId,
+            WorkflowProcessId = emsProcessId,
+            CurrentStepId     = new Guid($"cccccccc-cccc-cccc-cccc-cccccccccc0{item.Item2 + 1}"),
+            Title             = item.Item1,
+            Status            = item.Item2 == 7 ? "Completed" : "Active",
+            CreatedAt         = DateTimeOffset.UtcNow.AddDays(-(6 - idx)),
+            UpdatedAt         = DateTimeOffset.UtcNow.AddDays(-(2 - Math.Min(idx, 2))),
+        }).ToList();
+
+        // ── Government Contract Pursuit Process ──────────────────────────
+
+        const string contractSchema = """
+            [
+              {"key":"solicitationNumber","label":"Solicitation Number","type":"text","required":true},
+              {"key":"agency","label":"Agency / Customer","type":"text","required":true},
+              {"key":"contractType","label":"Contract Type","type":"select","required":true,
+               "options":["RFP","IDIQ","Task Order","BPA","SBIR","GSA Schedule","SEWP"]},
+              {"key":"naicsCode","label":"NAICS Code","type":"text","required":false},
+              {"key":"setAside","label":"Set-Aside","type":"select","required":false,
+               "options":["None","Small Business","SDVOSB","8(a)","WOSB","HUBZone","VOSB"]},
+              {"key":"dueDate","label":"Response Due Date","type":"date","required":true},
+              {"key":"estimatedValue","label":"Estimated Contract Value ($)","type":"number","required":false},
+              {"key":"goNoGo","label":"Bid Decision","type":"select","required":false,
+               "options":["TBD","Go","No-Go"]},
+              {"key":"captureManager","label":"Capture Manager","type":"text","required":false},
+              {"key":"notes","label":"Notes / Intelligence","type":"textarea","required":false}
+            ]
+            """;
+
+        var contractSteps = new (string Name, string? Role)[]
+        {
+            ("Opportunity Identified", "Capture Manager"),
+            ("Bid / No-Bid Review",    "Leadership"),
+            ("Capture Planning",       "Capture Manager"),
+            ("Proposal Development",   "Proposal Manager"),
+            ("Internal Review",        "Reviewer"),
+            ("Submitted",              "Contracts"),
+            ("Award Pending",          "Contracts"),
+            ("Awarded",                null),
+        };
+
+        var contractProcess = new WorkflowProcess
+        {
+            Id           = contractProcessId,
+            Name         = "Contract Pursuit",
+            Description  = "Track RFP, IDIQ, and task order opportunities from pipeline identification through award.",
+            PrimaryColor = "#1a237e",
+            AccentColor  = "#3949ab",
+            IconClass    = "bi-file-earmark-text-fill",
+            AppSlug      = "contract-pursuit",
+            FormSchema   = contractSchema,
+            Steps        = contractSteps.Select((s, i) => new WorkflowStep
+            {
+                Id                  = new Guid($"dddddddd-dddd-dddd-dddd-dddddddddd0{i + 1}"),
+                WorkflowProcessId   = contractProcessId,
+                Name                = s.Name,
+                Order               = i + 1,
+                DefaultAssigneeRole = s.Role,
+                AllowBacktracking   = true,
+                CanSkip             = false,
+            }).ToList()
+        };
+
+        var contractInstances = new[]
+        {
+            ("DoD IT Modernization RFP – W9133L-26-R-0041",   1),
+            ("DHS Cybersecurity IDIQ – HSHQDC-26-R-00005",    3),
+            ("GSA Facilities BPA – GS-06P-26-BG-D-0012",      0),
+            ("HHS Data Analytics RFP – HHS-26-R-DATAV2",      5),
+            ("Army Training SBIR – W911NF-26-1-0177",          6),
+            ("DHS Small Business SDVOSB – HSBP1026R00032",     2),
+        };
+
+        var contractInstanceEntities = contractInstances.Select((item, idx) => new WorkflowInstance
+        {
+            TenantId          = govTenantId,
+            WorkflowProcessId = contractProcessId,
+            CurrentStepId     = new Guid($"dddddddd-dddd-dddd-dddd-dddddddddd0{item.Item2 + 1}"),
+            Title             = item.Item1,
+            Status            = item.Item2 == 7 ? "Completed" : "Active",
+            CreatedAt         = DateTimeOffset.UtcNow.AddDays(-(14 - idx * 2)),
+            UpdatedAt         = DateTimeOffset.UtcNow.AddDays(-(7 - idx)),
+        }).ToList();
+
+        // ── Task Order Execution Process ─────────────────────────────────
+
+        const string toSchema = """
+            [
+              {"key":"toNumber","label":"Task Order Number","type":"text","required":true},
+              {"key":"idiqVehicle","label":"IDIQ Vehicle / Contract","type":"text","required":true},
+              {"key":"popStart","label":"Period of Performance Start","type":"date","required":true},
+              {"key":"popEnd","label":"Period of Performance End","type":"date","required":true},
+              {"key":"value","label":"Task Order Value ($)","type":"number","required":false},
+              {"key":"programManager","label":"Program Manager","type":"text","required":true},
+              {"key":"technicalLead","label":"Technical Lead","type":"text","required":false},
+              {"key":"cdrl","label":"Key Deliverables / CDRLs","type":"textarea","required":false},
+              {"key":"notes","label":"Notes","type":"textarea","required":false}
+            ]
+            """;
+
+        var toSteps = new (string Name, string? Role)[]
+        {
+            ("TO Received",          "Contracts"),
+            ("Technical Analysis",   "Technical Lead"),
+            ("Proposal",             "Proposal Manager"),
+            ("Submitted",            "Contracts"),
+            ("Awarded",              "Program Manager"),
+            ("Kickoff",              "Program Manager"),
+            ("Execution",            "Technical Lead"),
+            ("Deliverable Review",   "Quality Assurance"),
+            ("Closed",               null),
+        };
+
+        var toProcess = new WorkflowProcess
+        {
+            Id           = toProcessId,
+            Name         = "Task Order Execution",
+            Description  = "Manage individual task orders under an IDIQ vehicle from receipt through delivery and close-out.",
+            PrimaryColor = "#004d40",
+            AccentColor  = "#00897b",
+            IconClass    = "bi-clipboard2-check-fill",
+            AppSlug      = "task-order",
+            FormSchema   = toSchema,
+            Steps        = toSteps.Select((s, i) => new WorkflowStep
+            {
+                Id                  = new Guid($"eeeeeeee-eeee-eeee-eeee-eeeeeeeeee0{i + 1}"),
+                WorkflowProcessId   = toProcessId,
+                Name                = s.Name,
+                Order               = i + 1,
+                DefaultAssigneeRole = s.Role,
+                AllowBacktracking   = true,
+                CanSkip             = false,
+            }).ToList()
+        };
+
+        var toInstances = new[]
+        {
+            ("TO-001 – Cloud Migration Phase 1",       4),
+            ("TO-002 – Help Desk Support Y1",           6),
+            ("TO-003 – Network Infrastructure Upgrade", 1),
+            ("TO-004 – Cybersecurity Assessment",       5),
+            ("TO-005 – Training Development",           3),
+        };
+
+        var toInstanceEntities = toInstances.Select((item, idx) => new WorkflowInstance
+        {
+            TenantId          = govTenantId,
+            WorkflowProcessId = toProcessId,
+            CurrentStepId     = new Guid($"eeeeeeee-eeee-eeee-eeee-eeeeeeeeee0{item.Item2 + 1}"),
+            Title             = item.Item1,
+            Status            = "Active",
+            CreatedAt         = DateTimeOffset.UtcNow.AddDays(-(10 - idx * 2)),
+            UpdatedAt         = DateTimeOffset.UtcNow.AddDays(-(5 - idx)),
+        }).ToList();
+
+        // ── Tenants ──────────────────────────────────────────────────────
+
+        var emsTenant = new Tenant
+        {
+            Id        = emsTenantId,
+            Name      = "City of Acme EMS",
+            Slug      = "city-of-acme-ems",
+            IsActive  = true,
+            CreatedAt = DateTimeOffset.UtcNow.AddMonths(-6),
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        var govTenant = new Tenant
+        {
+            Id        = govTenantId,
+            Name      = "Federal Contractors LLC",
+            Slug      = "federal-contractors-llc",
+            IsActive  = true,
+            CreatedAt = DateTimeOffset.UtcNow.AddMonths(-3),
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        // ── App Suites ───────────────────────────────────────────────────
+
+        var emsSuiteId = new Guid("a8b9c0d1-e2f3-4567-bcde-678901234567");
+        var govSuiteId = new Guid("b9c0d1e2-f3a4-5678-cdef-789012345678");
+
+        var emsSuite = new AppSuite
+        {
+            Id          = emsSuiteId,
+            TenantId    = emsTenantId,
+            Name        = "EMS Operations",
+            Slug        = "ems-operations",
+            Description = "End-to-end emergency medical services — dispatch, scheduling, and compliance reporting.",
+            IconClass   = "bi-hospital-fill",
+            Color       = "#b71c1c",
+            SortOrder   = 0,
+        };
+
+        var govSuite = new AppSuite
+        {
+            Id          = govSuiteId,
+            TenantId    = govTenantId,
+            Name        = "Contract Management",
+            Slug        = "contract-management",
+            Description = "Full lifecycle government contract management — from pipeline through task order execution.",
+            IconClass   = "bi-briefcase-fill",
+            Color       = "#1a237e",
+            SortOrder   = 0,
+        };
+
+        // ── Micro Apps ───────────────────────────────────────────────────
+
+        var emsApp = new MicroApp
+        {
+            Id                = new Guid("c9d0e1f2-a3b4-5678-cdef-890123456789"),
+            TenantId          = emsTenantId,
+            WorkflowProcessId = emsProcessId,
+            AppSuiteId        = emsSuiteId,
+            DisplayName       = "EMS Dispatch",
+            Slug              = "ems-dispatch",
+            Description       = "Real-time incident dispatch and crew management for EMS units.",
+            PrimaryColor      = "#b71c1c",
+            AccentColor       = "#ef5350",
+            IconClass         = "bi-hospital-fill",
+            Status            = "active",
+            IsPublic          = false,
+        };
+
+        var contractApp = new MicroApp
+        {
+            Id                = new Guid("d0e1f2a3-b4c5-6789-defa-901234567890"),
+            TenantId          = govTenantId,
+            WorkflowProcessId = contractProcessId,
+            AppSuiteId        = govSuiteId,
+            DisplayName       = "Contract Pursuit",
+            Slug              = "contract-pursuit",
+            Description       = "Pipeline management for RFP, IDIQ, and BPA opportunities.",
+            PrimaryColor      = "#1a237e",
+            AccentColor       = "#3949ab",
+            IconClass         = "bi-file-earmark-text-fill",
+            Status            = "active",
+            IsPublic          = false,
+        };
+
+        var toApp = new MicroApp
+        {
+            Id                = new Guid("e1f2a3b4-c5d6-7890-efab-012345678901"),
+            TenantId          = govTenantId,
+            WorkflowProcessId = toProcessId,
+            AppSuiteId        = govSuiteId,
+            DisplayName       = "Task Order Execution",
+            Slug              = "task-order-execution",
+            Description       = "Manage individual task orders under awarded IDIQ vehicles.",
+            PrimaryColor      = "#004d40",
+            AccentColor       = "#00897b",
+            IconClass         = "bi-clipboard2-check-fill",
+            Status            = "active",
+            IsPublic          = false,
+        };
+
+        // ── App Links ─────────────────────────────────────────────────────
+
+        var govLink = new AppLink
+        {
+            SourceMicroAppId = contractApp.Id,
+            TargetMicroAppId = toApp.Id,
+            LinkType         = "workflow-handoff",
+            Label            = "Awarded → Execute Task Orders",
+        };
+
+        // ── Persist ───────────────────────────────────────────────────────
+
+        _db.Tenants.AddRange(emsTenant, govTenant);
+        _db.WorkflowProcesses.AddRange(emsProcess, contractProcess, toProcess);
+        _db.WorkflowInstances.AddRange(emsInstanceEntities);
+        _db.WorkflowInstances.AddRange(contractInstanceEntities);
+        _db.WorkflowInstances.AddRange(toInstanceEntities);
+        _db.AppSuites.AddRange(emsSuite, govSuite);
+        _db.MicroApps.AddRange(emsApp, contractApp, toApp);
+        _db.AppLinks.Add(govLink);
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message    = "Industry seed complete.",
+            tenants    = 2,
+            processes  = 3,
+            instances  = emsInstanceEntities.Count + contractInstanceEntities.Count + toInstanceEntities.Count,
+            suites     = 2,
+            microApps  = 3,
+            links      = 1,
+        });
+    }
 }
 
 public record MoveRequest(Guid TargetStepId, string? NewAssigneeId, string? Comments);

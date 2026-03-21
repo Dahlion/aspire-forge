@@ -146,11 +146,13 @@ export function ProcessEditorDrawer({ process, onClose, onSaved }: Props) {
             <div style={{
                 position: "fixed", top: 0, right: 0, bottom: 0,
                 width: "min(680px, 100vw)",
-                background: "#fff",
+                backgroundColor: "#0d1720",
+                backgroundImage: "linear-gradient(0deg, rgba(150, 190, 170, 0.18) 0%, #0d1720 100%)",
+                color: "#f3f7f5",
                 zIndex: 1050,
                 display: "flex",
                 flexDirection: "column",
-                boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+                boxShadow: "-8px 0 28px rgba(0,0,0,0.35)",
             }}>
                 {/* Header */}
                 <div className="d-flex align-items-center justify-content-between p-4 border-bottom" style={{ flexShrink: 0 }}>
