@@ -310,7 +310,7 @@ export function AppSuitesView() {
 
                                 {/* Expanded: member apps */}
                                 {isExpanded && !isEditing && (
-                                    <div className="card-footer bg-light px-3 py-2">
+                                    <div className="card-footer bg-light text-dark px-3 py-2">
                                         <div className="small font-weight-bold text-uppercase text-muted mb-2">
                                             <i className="bi bi-grid-fill mr-1" />Member Apps
                                         </div>

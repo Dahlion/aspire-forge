@@ -403,7 +403,7 @@ export function MicroAppsView() {
                                         <div className="d-flex align-items-center flex-wrap" style={{ gap: "0.5rem" }}>
                                             {/* Domains badges */}
                                             {(app.domains?.length ?? 0) > 0 && app.domains!.map(d => (
-                                                <span key={d.id} className="badge badge-light border" style={{ fontSize: "0.75rem" }}>
+                                                <span key={d.id} className="badge badge-light text-dark border" style={{ fontSize: "0.75rem" }}>
                                                     <i className={`bi bi-globe mr-1 text-${d.sslStatus === "provisioned" ? "success" : "warning"}`} />
                                                     {d.hostname}
                                                 </span>
@@ -452,7 +452,7 @@ export function MicroAppsView() {
 
                                 {/* Expanded: Domains + Links */}
                                 {isExpanded && expandedApp?.id === app.id && (
-                                    <div className="card-footer bg-light px-3 py-3">
+                                    <div className="card-footer bg-light text-dark px-3 py-3">
                                         <div className="row">
                                             {/* Domains panel */}
                                             <div className="col-md-6">
@@ -573,7 +573,7 @@ export function MicroAppsView() {
                                                     {[...app.process.steps]
                                                         .sort((a, b) => a.order - b.order)
                                                         .map((s, i) => (
-                                                            <span key={s.id} className="badge badge-light border" style={{ fontSize: "0.78rem" }}>
+                                                            <span key={s.id} className="badge badge-light text-dark border" style={{ fontSize: "0.78rem" }}>
                                                                 <span className="mr-1" style={{ color: app.accentColor }}>{i + 1}.</span>
                                                                 {s.name}
                                                             </span>

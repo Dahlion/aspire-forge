@@ -5,14 +5,6 @@ type AdminSidebarProps = {
     route: AdminRoute;
     tenants: TenantSummary[];
     loadingTenants: boolean;
-    busy: boolean;
-    newTenantName: string;
-    newTenantSlug: string;
-    newTenantActive: boolean;
-    setNewTenantName: (value: string) => void;
-    setNewTenantSlug: (value: string) => void;
-    setNewTenantActive: (value: boolean) => void;
-    onCreateTenant: () => void;
     onNavigate: (route: AdminRoute) => void;
 };
 
@@ -52,20 +44,7 @@ function SectionLabel({ label }: { label: string }) {
     );
 }
 
-export function AdminSidebar({
-    route,
-    tenants,
-    loadingTenants,
-    busy,
-    newTenantName,
-    newTenantSlug,
-    newTenantActive,
-    setNewTenantName,
-    setNewTenantSlug,
-    setNewTenantActive,
-    onCreateTenant,
-    onNavigate,
-}: AdminSidebarProps) {
+export function AdminSidebar({ route, tenants, loadingTenants, onNavigate }: AdminSidebarProps) {
     const isActive = (kind: AdminRoute["kind"]) => route.kind === kind;
     const isClientSection = isActive("client-manager") || isActive("tenant");
 
@@ -139,6 +118,12 @@ export function AdminSidebar({
 
                     <SectionLabel label="Dev Tools" />
                     <NavItem
+                        icon="bi-cloud-upload-fill"
+                        label="Zip Deploy"
+                        active={isActive("zip-deploy")}
+                        onClick={() => onNavigate({ kind: "zip-deploy" })}
+                    />
+                    <NavItem
                         icon="bi-tools"
                         label="Toolbox"
                         active={isActive("toolbox")}
@@ -185,31 +170,6 @@ export function AdminSidebar({
                             ))}
                         </div>
                     )}
-
-                    {/* Quick create client */}
-                    <div className="card-footer py-2 px-3">
-                        <div className="small font-weight-bold text-muted mb-2">
-                            <i className="bi bi-plus-circle mr-1" />Quick Create
-                        </div>
-                        <div className="form-group mb-2">
-                            <input type="text" className="form-control form-control-sm" placeholder="Client name"
-                                value={newTenantName} onChange={e => setNewTenantName(e.target.value)} />
-                        </div>
-                        <div className="form-group mb-2">
-                            <input type="text" className="form-control form-control-sm" placeholder="Slug (optional)"
-                                value={newTenantSlug} onChange={e => setNewTenantSlug(e.target.value)} />
-                        </div>
-                        <div className="form-check mb-2">
-                            <input type="checkbox" className="form-check-input" id="new-tenant-active"
-                                checked={newTenantActive} onChange={e => setNewTenantActive(e.target.checked)} />
-                            <label className="form-check-label small" htmlFor="new-tenant-active">Active</label>
-                        </div>
-                        <button className="btn btn-primary btn-sm btn-block" disabled={busy || !newTenantName.trim()}
-                            onClick={onCreateTenant}>
-                            {busy ? <span className="spinner-border spinner-border-sm mr-1" role="status" /> : <i className="bi bi-plus mr-1" />}
-                            Create Client
-                        </button>
-                    </div>
                 </div>
             )}
         </div>

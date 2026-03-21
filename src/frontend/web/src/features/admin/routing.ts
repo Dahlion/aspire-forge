@@ -7,6 +7,7 @@ export type AdminRoute =
     | { kind: "client-manager" }
     | { kind: "form-designer" }
     | { kind: "app-designer" }
+    | { kind: "zip-deploy" }
     | { kind: "toolbox" };
 
 export function parseAdminHashRoute(): AdminRoute {
@@ -26,6 +27,7 @@ export function parseAdminHashRoute(): AdminRoute {
         case "clients":              return { kind: "client-manager" };
         case "form-designer":        return { kind: "form-designer" };
         case "app-designer":         return { kind: "app-designer" };
+        case "zip-deploy":           return { kind: "zip-deploy" };
         case "toolbox":              return { kind: "toolbox" };
         default:                     return { kind: "dashboard" };
     }
@@ -40,6 +42,7 @@ export function navigateToAdminRoute(route: AdminRoute) {
         case "client-manager":       window.location.hash = "/admin/clients";              break;
         case "form-designer":        window.location.hash = "/admin/form-designer";        break;
         case "app-designer":         window.location.hash = "/admin/app-designer";         break;
+        case "zip-deploy":           window.location.hash = "/admin/zip-deploy";           break;
         case "toolbox":              window.location.hash = "/admin/toolbox";              break;
         case "tenant":               window.location.hash = `/admin/clients/${route.tenantId}`; break;
     }

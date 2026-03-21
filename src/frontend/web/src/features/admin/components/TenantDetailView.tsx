@@ -593,7 +593,7 @@ export function TenantDetailView({
                                             <div className="flex-grow-1">
                                                 <p className="mb-1">{n.content}</p>
                                                 <small className="text-muted">
-                                                    {n.category && <span className="badge badge-light border mr-2">{n.category}</span>}
+                                                    {n.category && <span className="badge badge-light text-dark border mr-2">{n.category}</span>}
                                                     {n.createdBy && <><i className="bi bi-person mr-1" />{n.createdBy} · </>}
                                                     {fmtDate(n.createdAt)}
                                                 </small>

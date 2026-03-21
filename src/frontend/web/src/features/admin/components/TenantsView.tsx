@@ -38,7 +38,7 @@ export function TenantsView({ tenants, loadingTenants, onNavigate }: Props) {
                 <div className="card shadow-sm">
                     <div className="card-body text-center text-muted py-5">
                         <i className="bi bi-building" style={{ fontSize: "2.5rem", opacity: 0.4 }} />
-                        <p className="mt-3 mb-0">No tenants yet. Use the sidebar to create your first tenant.</p>
+                        <p className="mt-3 mb-0">No clients yet. Click "New Client" above to get started.</p>
                     </div>
                 </div>
             ) : (

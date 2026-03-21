@@ -9,6 +9,7 @@ import { BusinessManagerView } from "./components/BusinessManagerView";
 import { MarketingManagerView } from "./components/MarketingManagerView";
 import { FormDesignerView } from "./components/FormDesignerView";
 import { AppDesignerView } from "./components/AppDesignerView";
+import { ZipDeployView } from "./components/ZipDeployView";
 
 type AdminConsoleProps = {
     enabled: boolean;
@@ -25,14 +26,6 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                     route={admin.route}
                     tenants={admin.tenants}
                     loadingTenants={admin.loadingTenants}
-                    busy={admin.busy}
-                    newTenantName={admin.newTenantName}
-                    newTenantSlug={admin.newTenantSlug}
-                    newTenantActive={admin.newTenantActive}
-                    setNewTenantName={admin.setNewTenantName}
-                    setNewTenantSlug={admin.setNewTenantSlug}
-                    setNewTenantActive={admin.setNewTenantActive}
-                    onCreateTenant={admin.createTenantAction}
                     onNavigate={admin.navigateToAdminRoute}
                 />
             </div>
@@ -68,6 +61,13 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                         onCreateLead={admin.createLeadAction}
                         onUpdateLead={admin.updateLeadAction}
                         onDeleteLead={admin.deleteLeadAction}
+                        newTenantName={admin.newTenantName}
+                        newTenantSlug={admin.newTenantSlug}
+                        newTenantActive={admin.newTenantActive}
+                        setNewTenantName={admin.setNewTenantName}
+                        setNewTenantSlug={admin.setNewTenantSlug}
+                        setNewTenantActive={admin.setNewTenantActive}
+                        onCreateTenant={admin.createTenantAction}
                     />
                 )}
 
@@ -141,6 +141,7 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
                 {admin.route.kind === "marketing-manager" && <MarketingManagerView />}
                 {admin.route.kind === "form-designer"      && <FormDesignerView />}
                 {admin.route.kind === "app-designer"       && <AppDesignerView />}
+                {admin.route.kind === "zip-deploy"         && <ZipDeployView />}
                 {admin.route.kind === "toolbox"            && <ToolboxView />}
             </div>
         </div>

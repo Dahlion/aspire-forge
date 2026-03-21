@@ -163,7 +163,7 @@ export function WorkflowsView() {
                                     </div>
 
                                     <div className="d-flex mt-2" style={{ gap: "0.4rem", flexWrap: "wrap" }}>
-                                        <span className="badge badge-light" style={{ fontSize: "0.7rem" }}>
+                                        <span className="badge badge-light text-dark" style={{ fontSize: "0.7rem" }}>
                                             <i className="bi bi-list-ol mr-1" />{p.steps.length} steps
                                         </span>
                                         {p.appSlug && (

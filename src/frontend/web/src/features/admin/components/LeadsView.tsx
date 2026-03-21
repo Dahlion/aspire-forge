@@ -269,7 +269,7 @@ export function LeadsView({ leads, loadingLeads, busy, onCreateLead, onUpdateLea
                                             <strong>{lead.companyName}</strong>
                                             <span className={`badge badge-${STATUS_COLOR[lead.status]}`}>{lead.status}</span>
                                             {lead.segment && (
-                                                <span className="badge badge-light border">{lead.segment}</span>
+                                                <span className="badge badge-light text-dark border">{lead.segment}</span>
                                             )}
                                             {fmtValue(lead.estimatedValue) && (
                                                 <span className="badge badge-outline-success text-success border border-success small">
