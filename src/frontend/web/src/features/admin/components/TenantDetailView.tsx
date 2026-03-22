@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SUBSCRIPTION_STATUSES, NOTE_CATEGORIES, INVOICE_STATUSES } from "../api";
+import { fetchEmsAdminSummary } from "../../ems/api";
 import { DataTable } from "../../../lib/DataTable";
 import type { DataTableAction } from "../../../lib/DataTable";
 import type {
@@ -48,7 +49,7 @@ const INV_STATUS_COLOR: Record<string, string> = {
     draft: "secondary", sent: "primary", paid: "success", overdue: "danger", void: "dark",
 };
 
-type Tab = "profile" | "subscriptions" | "contacts" | "notes" | "invoices";
+type Tab = "profile" | "subscriptions" | "contacts" | "notes" | "invoices" | "ems";
 
 const CONTACT_EMPTY = { name: "", title: "", email: "", phone: "", isPrimary: false };
 
@@ -211,6 +212,7 @@ export function TenantDetailView({
                     ["invoices", "bi-receipt", `Invoices (${tenantInvoices.length})`],
                     ["contacts", "bi-people-fill", `Contacts (${contacts.length})`],
                     ["notes", "bi-sticky-fill", `Notes (${notes.length})`],
+                    ["ems", "bi-heart-pulse-fill", "MedTrack EMS"],
                 ] as [Tab, string, string][]).map(([t, icon, label]) => (
                     <li key={t} className="nav-item">
                         <button className={tabClass(t)} onClick={() => setTab(t)} style={{ cursor: "pointer", background: "none", border: "none" }}>
@@ -549,6 +551,11 @@ export function TenantDetailView({
                 </div>
             )}
 
+            {/* ── MedTrack EMS tab ────────────────────────────────────────────────── */}
+            {tab === "ems" && tenantDetail && (
+                <EmsSummaryTab tenantId={tenantDetail.id} tenantName={tenantDetail.name} />
+            )}
+
             {/* ── Notes tab ───────────────────────────────────────────────────────── */}
             {tab === "notes" && (
                 <div className="d-flex flex-column gap-3">
@@ -610,6 +617,89 @@ export function TenantDetailView({
                     )}
                 </div>
             )}
+        </div>
+    );
+}
+
+/* ── EMS admin summary sub-component ───────────────────────────────────────── */
+function EmsSummaryTab({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
+    const [summary, setSummary] = useState<any | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchEmsAdminSummary(tenantId)
+            .then(setSummary)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, [tenantId]);
+
+    function openEmsApp() {
+        const base = window.location.pathname.split('/').slice(0, -1).join('/');
+        window.open(`${base}/?tenantId=${tenantId}#/ems/dashboard`, '_blank');
+    }
+
+    if (loading) return <div className="text-center py-5"><div className="spinner-border text-primary" /></div>;
+
+    return (
+        <div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h6 className="font-weight-bold mb-0">
+                        <i className="bi bi-heart-pulse-fill mr-2" style={{ color: "#3b82f6" }} />
+                        MedTrack EMS — {tenantName}
+                    </h6>
+                    <small className="text-muted">Medication inventory &amp; compliance tracking</small>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={openEmsApp}>
+                    <i className="bi bi-box-arrow-up-right mr-1" />Open EMS App
+                </button>
+            </div>
+
+            {summary ? (
+                <div className="row g-3">
+                    {[
+                        { label: "Active Vials",       value: summary.activeVials,        icon: "bi-droplet-fill",       color: "#3b82f6" },
+                        { label: "Locations",          value: summary.locationCount,       icon: "bi-building",           color: "#22c55e" },
+                        { label: "Personnel",          value: summary.personnelCount,      icon: "bi-people-fill",        color: "#a78bfa" },
+                        { label: "Open Checks",        value: summary.openCheckSessions,   icon: "bi-clipboard-check",    color: "#f59e0b" },
+                        { label: "Expiring ≤30d",      value: summary.expiringVials,       icon: "bi-calendar-x",         color: "#ef4444" },
+                        { label: "Broken Seals",       value: summary.brokenSeals,         icon: "bi-unlock",             color: summary.brokenSeals > 0 ? "#ef4444" : "#6b7280" },
+                    ].map(stat => (
+                        <div key={stat.label} className="col-4 col-md-2">
+                            <div className="card shadow-sm text-center" style={{ borderRadius: 10 }}>
+                                <div className="card-body py-3 px-2">
+                                    <i className={`bi ${stat.icon}`} style={{ fontSize: "1.4rem", color: stat.color }} />
+                                    <div className="font-weight-bold" style={{ fontSize: "1.4rem", lineHeight: 1.2, marginTop: 4 }}>{stat.value ?? "—"}</div>
+                                    <div className="text-muted" style={{ fontSize: "0.7rem" }}>{stat.label}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="alert alert-info">
+                    <i className="bi bi-info-circle mr-2" />
+                    EMS module not yet configured for this tenant. Open the EMS app to get started.
+                </div>
+            )}
+
+            <div className="card shadow-sm mt-4">
+                <div className="card-header"><strong>Quick Links</strong></div>
+                <div className="card-body d-flex flex-wrap gap-2">
+                    {[
+                        { label: "Personnel Roster", hash: "personnel" },
+                        { label: "Locations",         hash: "locations" },
+                        { label: "Medication Catalog", hash: "catalog" },
+                        { label: "Agency Config",     hash: "agency-config" },
+                        { label: "Reports",           hash: "reports" },
+                    ].map(link => (
+                        <a key={link.hash} href={`#/ems/${link.hash}?tenantId=${tenantId}`} target="_blank" rel="noreferrer"
+                            className="btn btn-outline-secondary btn-sm">
+                            {link.label} <i className="bi bi-box-arrow-up-right ml-1" style={{ fontSize: "0.7rem" }} />
+                        </a>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

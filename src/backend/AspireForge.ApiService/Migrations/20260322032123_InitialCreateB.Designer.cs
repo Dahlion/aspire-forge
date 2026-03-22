@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspireForge.ApiService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321123432_InitialDatabaseCreate")]
-    partial class InitialDatabaseCreate
+    [Migration("20260322032123_InitialCreateB")]
+    partial class InitialCreateB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -263,6 +263,668 @@ namespace AspireForge.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Leads");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedAgencyConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AgencyLicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("AgencyName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<int>("DefaultCheckFrequencyHours")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("EnableControlledSubstanceLog")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableDailyChecks")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableExpiryAlerts")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableOpenFdaLookup")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableReporting")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableSealedContainers")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnableVialTracking")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EnforceRolePermissions")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ExpiryWarningDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ReportCheckCompliance")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReportExpiryTracking")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReportInventorySnapshot")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReportVialUsage")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReportWasteLog")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RequireWitnessForAllChecks")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RequireWitnessForAllWaste")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("MedAgencyConfigs");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedCheckItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Discrepancy")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SealIntact")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("VialId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainerId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("VialId");
+
+                    b.ToTable("MedCheckItems");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedCheckSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("PersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("StorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WitnessPersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonnelId");
+
+                    b.HasIndex("StorageLocationId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("WitnessPersonnelId");
+
+                    b.ToTable("MedCheckSessions");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedContainer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CheckFrequencyHours")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("CheckRequiresWitness")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ContainerType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsControlledSubstance")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSealable")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSealed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("SealNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("StorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageLocationId");
+
+                    b.ToTable("MedContainers");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedLicenseLevel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CanAdminister")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanManageCatalog")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanManageLocations")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanManageRoster")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanMove")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanOrder")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanPerformCheck")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanReceive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanStock")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanWaste")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanWitness")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Rank")
+                        .IsUnique();
+
+                    b.ToTable("MedLicenseLevels");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Concentration")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeaSchedule")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FormDescription")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("GenericName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NdcCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("RouteOfAdministration")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("MedMedications");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedicationConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsControlledSubstance")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MedicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("RequireSealedStorage")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RequireWitnessForWaste")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedicationId");
+
+                    b.HasIndex("TenantId", "MedicationId")
+                        .IsUnique();
+
+                    b.ToTable("MedMedicationConfigs");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedicationTag", b =>
+                {
+                    b.Property<Guid>("MedicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("MedicationId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("MedMedicationTags");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedPersonnel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BadgeNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KeycloakUserId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("LicenseLevelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeycloakUserId");
+
+                    b.HasIndex("LicenseLevelId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("MedPersonnel");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LocationType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("MedStorageLocations");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("MedTags");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedVial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AdministeredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AgencyLabelCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DisposedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LotNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("ManufacturerBarcode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("MedicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("OrderedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("RemainingVolumeMl")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset?>("StockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalVolumeMl")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("WastedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainerId");
+
+                    b.HasIndex("ManufacturerBarcode");
+
+                    b.HasIndex("MedicationId");
+
+                    b.HasIndex("TenantId", "AgencyLabelCode")
+                        .IsUnique()
+                        .HasFilter("\"AgencyLabelCode\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.ToTable("MedVials");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedVialEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("DosageAmountMl")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("FromContainerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IncidentNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("PatientWeightKg")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<Guid?>("PersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ToContainerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("VialId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WitnessPersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonnelId");
+
+                    b.HasIndex("VialId");
+
+                    b.HasIndex("WitnessPersonnelId");
+
+                    b.ToTable("MedVialEvents");
                 });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>
@@ -793,6 +1455,231 @@ namespace AspireForge.ApiService.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedAgencyConfig", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedCheckItem", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedContainer", "Container")
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AspireForge.ApiService.Data.MedCheckSession", "Session")
+                        .WithMany("Items")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedVial", "Vial")
+                        .WithMany()
+                        .HasForeignKey("VialId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Container");
+
+                    b.Navigation("Session");
+
+                    b.Navigation("Vial");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedCheckSession", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "Personnel")
+                        .WithMany()
+                        .HasForeignKey("PersonnelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedStorageLocation", "StorageLocation")
+                        .WithMany()
+                        .HasForeignKey("StorageLocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "WitnessPersonnel")
+                        .WithMany()
+                        .HasForeignKey("WitnessPersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Personnel");
+
+                    b.Navigation("StorageLocation");
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("WitnessPersonnel");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedContainer", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedStorageLocation", "StorageLocation")
+                        .WithMany("Containers")
+                        .HasForeignKey("StorageLocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StorageLocation");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedLicenseLevel", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedication", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedicationConfig", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedMedication", "Medication")
+                        .WithMany("Configs")
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Medication");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedicationTag", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedMedication", "Medication")
+                        .WithMany("Tags")
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedTag", "Tag")
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Medication");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedPersonnel", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedLicenseLevel", "LicenseLevel")
+                        .WithMany()
+                        .HasForeignKey("LicenseLevelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LicenseLevel");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedTag", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedVial", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedContainer", "Container")
+                        .WithMany("Vials")
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AspireForge.ApiService.Data.MedMedication", "Medication")
+                        .WithMany()
+                        .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Container");
+
+                    b.Navigation("Medication");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedVialEvent", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "Personnel")
+                        .WithMany()
+                        .HasForeignKey("PersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AspireForge.ApiService.Data.MedVial", "Vial")
+                        .WithMany("Events")
+                        .HasForeignKey("VialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "WitnessPersonnel")
+                        .WithMany()
+                        .HasForeignKey("WitnessPersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Personnel");
+
+                    b.Navigation("Vial");
+
+                    b.Navigation("WitnessPersonnel");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>
                 {
                     b.HasOne("AspireForge.ApiService.Data.AppSuite", "Suite")
@@ -902,6 +1789,33 @@ namespace AspireForge.ApiService.Migrations
             modelBuilder.Entity("AspireForge.ApiService.Data.AppSuite", b =>
                 {
                     b.Navigation("MicroApps");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedCheckSession", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedContainer", b =>
+                {
+                    b.Navigation("Vials");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedMedication", b =>
+                {
+                    b.Navigation("Configs");
+
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
+                {
+                    b.Navigation("Containers");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedVial", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.MicroApp", b =>

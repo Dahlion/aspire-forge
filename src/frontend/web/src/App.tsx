@@ -6,6 +6,7 @@ import { AdminLoginPage } from "./features/login/AdminLoginPage";
 import { ClientLoginPage } from "./features/login/ClientLoginPage";
 import { ClientPortal } from "./features/client/ClientPortal";
 import { ClientAppView } from "./features/client/ClientAppView";
+import EmsPortal from "./features/ems/EmsPortal";
 
 function useHash() {
     const [hash, setHash] = useState(window.location.hash);
@@ -45,10 +46,11 @@ export default function App() {
 
     const isAdminRoute  = hash.startsWith("#/admin");
     const isClientRoute = hash.startsWith("#/client");
+    const isEmsRoute    = hash.startsWith("#/ems");
     const clientAppSlug = hash.startsWith("#/client/app/") ? hash.slice("#/client/app/".length) : null;
     const isLoginAdmin = hash === "#/login/admin";
     const isLoginClient = hash === "#/login/client";
-    const isLanding = !isAdminRoute && !isClientRoute && !isLoginAdmin && !isLoginClient;
+    const isLanding = !isAdminRoute && !isClientRoute && !isEmsRoute && !isLoginAdmin && !isLoginClient;
 
     // Login pages and portal pages handle their own full-page layout (no shared navbar)
     if (isLoginAdmin) {
@@ -56,6 +58,13 @@ export default function App() {
     }
     if (isLoginClient) {
         return <ClientLoginPage login={login} busy={busy} />;
+    }
+
+    // EMS portal has its own nav/layout — render standalone
+    if (isEmsRoute) {
+        return authenticated
+            ? <EmsPortal tenantId={tenantId ?? ""} username={username ?? ""} logout={logout} />
+            : <ClientLoginPage login={login} busy={busy} />;
     }
 
     return (
@@ -66,6 +75,7 @@ export default function App() {
                 logout={logout}
                 isAdminRoute={isAdminRoute}
                 isClientRoute={isClientRoute}
+                isEmsRoute={isEmsRoute}
                 isLanding={isLanding}
             />
 
@@ -115,10 +125,11 @@ interface NavbarProps {
     logout: () => void;
     isAdminRoute: boolean;
     isClientRoute: boolean;
+    isEmsRoute: boolean;
     isLanding: boolean;
 }
 
-function Navbar({ authenticated, busy, logout, isAdminRoute, isClientRoute, isLanding }: NavbarProps) {
+function Navbar({ authenticated, busy, logout, isAdminRoute, isClientRoute, isEmsRoute, isLanding }: NavbarProps) {
     const scrollTo = (id: string) => {
         if (!isLanding) {
             window.location.hash = "";
@@ -182,6 +193,18 @@ function Navbar({ authenticated, busy, logout, isAdminRoute, isClientRoute, isLa
                                 <i className="bi bi-person-badge-fill mr-1" />
                                 Client Portal
                             </span>
+                        </li>
+                    )}
+                    {authenticated && (
+                        <li className="nav-item">
+                            <a
+                                className="nav-link"
+                                href="#/ems"
+                                onClick={e => { e.preventDefault(); window.location.hash = "/ems"; }}
+                            >
+                                <i className="bi bi-capsule-pill mr-1" />
+                                MedTrack
+                            </a>
                         </li>
                     )}
                 </ul>

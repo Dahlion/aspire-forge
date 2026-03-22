@@ -65,6 +65,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// --- OpenFDA HTTP client (for medication barcode lookups) ---
+builder.Services.AddHttpClient("openfda", c =>
+{
+    c.BaseAddress = new Uri("https://api.fda.gov/");
+    c.DefaultRequestHeaders.Add("User-Agent", "AspireForge-EMS/1.0");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();

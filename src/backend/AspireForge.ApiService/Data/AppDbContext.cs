@@ -26,6 +26,21 @@ public class AppDbContext : DbContext
     public DbSet<AppDomain> AppDomains => Set<AppDomain>();
     public DbSet<AppLink> AppLinks => Set<AppLink>();
 
+    // ── EMS Medication Tracker ─────────────────────────────────────────────────
+    public DbSet<MedLicenseLevel>     MedLicenseLevels     => Set<MedLicenseLevel>();
+    public DbSet<MedTag>              MedTags              => Set<MedTag>();
+    public DbSet<MedMedication>       MedMedications       => Set<MedMedication>();
+    public DbSet<MedMedicationTag>    MedMedicationTags    => Set<MedMedicationTag>();
+    public DbSet<MedMedicationConfig> MedMedicationConfigs => Set<MedMedicationConfig>();
+    public DbSet<MedPersonnel>        MedPersonnel         => Set<MedPersonnel>();
+    public DbSet<MedStorageLocation>  MedStorageLocations  => Set<MedStorageLocation>();
+    public DbSet<MedContainer>        MedContainers        => Set<MedContainer>();
+    public DbSet<MedVial>             MedVials             => Set<MedVial>();
+    public DbSet<MedVialEvent>        MedVialEvents        => Set<MedVialEvent>();
+    public DbSet<MedCheckSession>     MedCheckSessions     => Set<MedCheckSession>();
+    public DbSet<MedCheckItem>        MedCheckItems        => Set<MedCheckItem>();
+    public DbSet<MedAgencyConfig>     MedAgencyConfigs     => Set<MedAgencyConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Tenant>(entity =>
@@ -205,6 +220,143 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Source).WithMany(a => a.OutboundLinks).HasForeignKey(e => e.SourceMicroAppId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.Target).WithMany().HasForeignKey(e => e.TargetMicroAppId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.SourceMicroAppId, e.TargetMicroAppId }).IsUnique();
+        });
+
+        // ── EMS Medication Tracker ─────────────────────────────────────────────
+
+        modelBuilder.Entity<MedLicenseLevel>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(80).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.Rank }).IsUnique();
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedTag>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(60).IsRequired();
+            e.Property(x => x.Color).HasMaxLength(7);
+            e.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedMedication>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.GenericName).HasMaxLength(120).IsRequired();
+            e.Property(x => x.BrandName).HasMaxLength(120);
+            e.Property(x => x.NdcCode).HasMaxLength(20);
+            e.Property(x => x.Concentration).HasMaxLength(80);
+            e.Property(x => x.RouteOfAdministration).HasMaxLength(60);
+            e.Property(x => x.FormDescription).HasMaxLength(80);
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedMedicationTag>(e =>
+        {
+            e.HasKey(x => new { x.MedicationId, x.TagId });
+            e.HasOne(x => x.Medication).WithMany(m => m.Tags).HasForeignKey(x => x.MedicationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Tag).WithMany().HasForeignKey(x => x.TagId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MedMedicationConfig>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.TenantId, x.MedicationId }).IsUnique();
+            e.HasOne(x => x.Medication).WithMany(m => m.Configs).HasForeignKey(x => x.MedicationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedPersonnel>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FirstName).HasMaxLength(80).IsRequired();
+            e.Property(x => x.LastName).HasMaxLength(80).IsRequired();
+            e.Property(x => x.BadgeNumber).HasMaxLength(40);
+            e.Property(x => x.Email).HasMaxLength(200);
+            e.Property(x => x.KeycloakUserId).HasMaxLength(200);
+            e.HasIndex(x => x.KeycloakUserId);
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.LicenseLevel).WithMany().HasForeignKey(x => x.LicenseLevelId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MedStorageLocation>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.LocationType).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(300);
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedContainer>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            e.Property(x => x.ContainerType).HasMaxLength(40).IsRequired();
+            e.Property(x => x.SealNumber).HasMaxLength(60);
+            e.HasOne(x => x.StorageLocation).WithMany(l => l.Containers).HasForeignKey(x => x.StorageLocationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MedVial>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.LotNumber).HasMaxLength(60).IsRequired();
+            e.Property(x => x.ManufacturerBarcode).HasMaxLength(80);
+            e.Property(x => x.AgencyLabelCode).HasMaxLength(80);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.TotalVolumeMl).HasPrecision(10, 3);
+            e.Property(x => x.RemainingVolumeMl).HasPrecision(10, 3);
+            e.HasIndex(x => new { x.TenantId, x.AgencyLabelCode })
+             .IsUnique()
+             .HasFilter("\"AgencyLabelCode\" IS NOT NULL");
+            e.HasIndex(x => x.ManufacturerBarcode);
+            e.HasIndex(x => new { x.TenantId, x.Status });
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Medication).WithMany().HasForeignKey(x => x.MedicationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Container).WithMany(c => c.Vials).HasForeignKey(x => x.ContainerId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+        });
+
+        modelBuilder.Entity<MedVialEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.Property(x => x.IncidentNumber).HasMaxLength(80);
+            e.Property(x => x.PatientWeightKg).HasPrecision(8, 2);
+            e.Property(x => x.DosageAmountMl).HasPrecision(10, 3);
+            e.HasOne(x => x.Vial).WithMany(v => v.Events).HasForeignKey(x => x.VialId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Personnel).WithMany().HasForeignKey(x => x.PersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+            e.HasOne(x => x.WitnessPersonnel).WithMany().HasForeignKey(x => x.WitnessPersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+        });
+
+        modelBuilder.Entity<MedCheckSession>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.StorageLocation).WithMany().HasForeignKey(x => x.StorageLocationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Personnel).WithMany().HasForeignKey(x => x.PersonnelId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.WitnessPersonnel).WithMany().HasForeignKey(x => x.WitnessPersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+        });
+
+        modelBuilder.Entity<MedCheckItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Discrepancy).HasMaxLength(300);
+            e.HasOne(x => x.Session).WithMany(s => s.Items).HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Container).WithMany().HasForeignKey(x => x.ContainerId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+            e.HasOne(x => x.Vial).WithMany().HasForeignKey(x => x.VialId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+        });
+
+        modelBuilder.Entity<MedAgencyConfig>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.AgencyName).HasMaxLength(160);
+            e.Property(x => x.AgencyLicenseNumber).HasMaxLength(80);
+            e.HasIndex(x => x.TenantId).IsUnique();
+            e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
@@ -496,4 +648,313 @@ public class AppLink
 
     public MicroApp? Source { get; set; }
     public MicroApp? Target { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMS MEDICATION TRACKER DOMAIN
+// DEA-compliant vial lifecycle tracking for EMS agencies.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Configurable license level for a tenant (Driver, EMT, AEMT, Paramedic, etc.)
+/// with a granular permission matrix.
+/// </summary>
+public class MedLicenseLevel
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = "";     // "Paramedic"
+    public int Rank { get; set; }              // sort order; 0=lowest privilege
+    public bool CanAdminister { get; set; }
+    public bool CanWaste { get; set; }
+    public bool CanWitness { get; set; }
+    public bool CanStock { get; set; }
+    public bool CanOrder { get; set; }
+    public bool CanReceive { get; set; }
+    public bool CanMove { get; set; }
+    public bool CanPerformCheck { get; set; }
+    public bool CanManageCatalog { get; set; }
+    public bool CanManageRoster { get; set; }
+    public bool CanManageLocations { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+}
+
+/// <summary>Tag definition scoped to a tenant (e.g., "Refrigeration Required").</summary>
+public class MedTag
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = "";
+    public string Color { get; set; } = "#17a2b8";
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+}
+
+/// <summary>
+/// Medication catalog entry scoped to a tenant.
+/// NDC and OpenFDA fields can be pre-filled via barcode scan.
+/// </summary>
+public class MedMedication
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string GenericName { get; set; } = "";
+    public string? BrandName { get; set; }
+    public int DeaSchedule { get; set; } = 0;     // 0=non-controlled, 2-5=controlled
+    public string? NdcCode { get; set; }           // e.g. "0641-6081-25"
+    public string? Concentration { get; set; }    // "1 mg/mL"
+    public string? RouteOfAdministration { get; set; }  // "IV/IO/IM"
+    public string? FormDescription { get; set; }  // "1 mL prefilled syringe"
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public List<MedMedicationTag> Tags { get; set; } = [];
+    public List<MedMedicationConfig> Configs { get; set; } = [];
+}
+
+/// <summary>Join entity attaching a tag to a medication.</summary>
+public class MedMedicationTag
+{
+    public Guid MedicationId { get; set; }
+    public Guid TagId { get; set; }
+
+    public MedMedication? Medication { get; set; }
+    public MedTag? Tag { get; set; }
+}
+
+/// <summary>
+/// Per-tenant override/configuration for a specific medication —
+/// controls witness requirements, controlled substance handling, and storage rules.
+/// </summary>
+public class MedMedicationConfig
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid MedicationId { get; set; }
+    public bool RequireWitnessForWaste { get; set; } = false;
+    public bool IsControlledSubstance { get; set; } = false;
+    public bool RequireSealedStorage { get; set; } = false;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MedMedication? Medication { get; set; }
+}
+
+/// <summary>Personnel roster entry for a tenant with license level and Keycloak identity link.</summary>
+public class MedPersonnel
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid LicenseLevelId { get; set; }
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string? BadgeNumber { get; set; }
+    public string? Email { get; set; }
+    public string? KeycloakUserId { get; set; }   // links to Keycloak identity
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public MedLicenseLevel? LicenseLevel { get; set; }
+}
+
+/// <summary>
+/// Physical storage location (truck unit, station, vault).
+/// Contains one or more containers.
+/// </summary>
+public class MedStorageLocation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = "";            // "Medic 3", "Station 1 Vault"
+    public string LocationType { get; set; } = "unit"; // unit | truck | station | vault
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public List<MedContainer> Containers { get; set; } = [];
+}
+
+/// <summary>
+/// A drug box or other container within a storage location.
+/// Sealed containers auto-pass all contents if the seal is intact.
+/// </summary>
+public class MedContainer
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid StorageLocationId { get; set; }
+    public string Name { get; set; } = "";            // "ALS Drug Box A"
+    public string ContainerType { get; set; } = "drug-box"; // drug-box | bag | vault-drawer
+    public bool IsSealable { get; set; } = true;      // supports tamper-evident seals
+    public bool IsSealed { get; set; } = false;
+    public string? SealNumber { get; set; }           // printed on tamper-evident seal
+    public int CheckFrequencyHours { get; set; } = 24;
+    public bool CheckRequiresWitness { get; set; } = false;
+    public bool IsControlledSubstance { get; set; } = false;
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MedStorageLocation? StorageLocation { get; set; }
+    public List<MedVial> Vials { get; set; } = [];
+}
+
+/// <summary>
+/// A single physical vial tracked from order through disposal.
+/// AgencyLabelCode is the QR code applied by the agency.
+/// ManufacturerBarcode is the barcode printed on the vial itself.
+/// </summary>
+public class MedVial
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid MedicationId { get; set; }
+    public Guid? ContainerId { get; set; }            // null = in transit / not stocked
+
+    public string LotNumber { get; set; } = "";
+    public string? ManufacturerBarcode { get; set; }  // manufacturer barcode on the vial
+    public string? AgencyLabelCode { get; set; }      // QR label applied by agency (unique per tenant)
+
+    public decimal TotalVolumeMl { get; set; }
+    public decimal RemainingVolumeMl { get; set; }
+
+    // ordered | received | stocked | in-use | administered | wasted | disposed | expired
+    public string Status { get; set; } = "ordered";
+
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public DateTimeOffset? OrderedAt { get; set; }
+    public DateTimeOffset? ReceivedAt { get; set; }
+    public DateTimeOffset? StockedAt { get; set; }
+    public DateTimeOffset? AdministeredAt { get; set; }
+    public DateTimeOffset? WastedAt { get; set; }
+    public DateTimeOffset? DisposedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public MedMedication? Medication { get; set; }
+    public MedContainer? Container { get; set; }
+    public List<MedVialEvent> Events { get; set; } = [];
+}
+
+/// <summary>
+/// Immutable audit log entry for every state change on a vial.
+/// Records who did it, when it happened, dosage details, and witness.
+/// </summary>
+public class MedVialEvent
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid VialId { get; set; }
+    public Guid? PersonnelId { get; set; }
+    public Guid? WitnessPersonnelId { get; set; }
+
+    // ordered | received | stocked | moved | administered | wasted | disposed | expired | checked | seal-broken | seal-applied
+    public string EventType { get; set; } = "";
+    public string? Notes { get; set; }
+    public string? IncidentNumber { get; set; }
+    public decimal? PatientWeightKg { get; set; }
+    public decimal? DosageAmountMl { get; set; }
+
+    public Guid? FromContainerId { get; set; }
+    public Guid? ToContainerId { get; set; }
+
+    public DateTimeOffset OccurredAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MedVial? Vial { get; set; }
+    public MedPersonnel? Personnel { get; set; }
+    public MedPersonnel? WitnessPersonnel { get; set; }
+}
+
+/// <summary>
+/// A single check event: who performed it, when, and which location.
+/// Contains MedCheckItems for each container/vial inspected.
+/// </summary>
+public class MedCheckSession
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid StorageLocationId { get; set; }
+    public Guid PersonnelId { get; set; }
+    public Guid? WitnessPersonnelId { get; set; }
+    public string Status { get; set; } = "in-progress"; // in-progress | completed | aborted
+    public string? Notes { get; set; }
+    public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+    public MedStorageLocation? StorageLocation { get; set; }
+    public MedPersonnel? Personnel { get; set; }
+    public MedPersonnel? WitnessPersonnel { get; set; }
+    public List<MedCheckItem> Items { get; set; } = [];
+}
+
+/// <summary>
+/// Tenant-level configuration for the EMS MedTrack module.
+/// Controls feature flags, report access, and workflow defaults.
+/// One record per tenant (unique index on TenantId).
+/// </summary>
+public class MedAgencyConfig
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+
+    // ── Agency identity ────────────────────────────────────────────────────────
+    public string AgencyName { get; set; } = "";
+    public string AgencyLicenseNumber { get; set; } = "";
+
+    // ── Feature toggles ────────────────────────────────────────────────────────
+    public bool EnableVialTracking { get; set; } = true;
+    public bool EnableDailyChecks { get; set; } = true;
+    public bool EnableControlledSubstanceLog { get; set; } = true;
+    public bool EnableExpiryAlerts { get; set; } = true;
+    public bool EnableSealedContainers { get; set; } = true;
+    public bool EnableOpenFdaLookup { get; set; } = true;
+    public bool EnableReporting { get; set; } = true;
+    public bool EnforceRolePermissions { get; set; } = false;
+
+    // ── Report toggles ─────────────────────────────────────────────────────────
+    public bool ReportVialUsage { get; set; } = true;
+    public bool ReportWasteLog { get; set; } = true;
+    public bool ReportCheckCompliance { get; set; } = true;
+    public bool ReportExpiryTracking { get; set; } = true;
+    public bool ReportInventorySnapshot { get; set; } = true;
+
+    // ── Workflow defaults ──────────────────────────────────────────────────────
+    public int DefaultCheckFrequencyHours { get; set; } = 24;
+    public int ExpiryWarningDays { get; set; } = 30;
+    public bool RequireWitnessForAllWaste { get; set; } = false;
+    public bool RequireWitnessForAllChecks { get; set; } = false;
+
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Tenant? Tenant { get; set; }
+}
+
+/// <summary>One container or vial item checked within a MedCheckSession.</summary>
+public class MedCheckItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SessionId { get; set; }
+    public Guid? ContainerId { get; set; }
+    public Guid? VialId { get; set; }
+    public bool SealIntact { get; set; } = true;    // for sealed containers
+    public bool Passed { get; set; } = true;
+    public string? Discrepancy { get; set; }
+    public DateTimeOffset CheckedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MedCheckSession? Session { get; set; }
+    public MedContainer? Container { get; set; }
+    public MedVial? Vial { get; set; }
 }
