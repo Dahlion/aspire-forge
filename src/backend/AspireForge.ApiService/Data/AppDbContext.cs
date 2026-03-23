@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<MedCheckSession>     MedCheckSessions     => Set<MedCheckSession>();
     public DbSet<MedCheckItem>        MedCheckItems        => Set<MedCheckItem>();
     public DbSet<MedAgencyConfig>     MedAgencyConfigs     => Set<MedAgencyConfig>();
+    public DbSet<MedSealEvent>        MedSealEvents        => Set<MedSealEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -150,6 +151,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.IconClass).HasMaxLength(60);
             entity.Property(e => e.AppSlug).HasMaxLength(60);
             entity.HasMany(e => e.Steps).WithOne().HasForeignKey(s => s.WorkflowProcessId).OnDelete(DeleteBehavior.Cascade);
+            // TenantId is nullable (null = global template)
+            entity.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade).IsRequired(false);
         });
 
         modelBuilder.Entity<WorkflowDeployment>(entity =>
@@ -173,6 +176,18 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.CurrentStep).WithMany().HasForeignKey(e => e.CurrentStepId);
         });
 
+        modelBuilder.Entity<WorkflowHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            // Cascade-delete history when the parent instance is deleted
+            entity.HasOne<WorkflowInstance>()
+                .WithMany()
+                .HasForeignKey(e => e.WorkflowInstanceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // FromStepId / ToStepId are intentionally denormalized audit data;
+            // no FK so history survives step edits/deletions.
+        });
+
         // ── Micro App Platform ─────────────────────────────────────────────
 
         modelBuilder.Entity<AppSuite>(entity =>
@@ -183,6 +198,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.IconClass).HasMaxLength(60);
             entity.Property(e => e.Color).HasMaxLength(7);
+            entity.Property(e => e.RequiredPlanSlug).HasMaxLength(100);
             entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
             entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -197,9 +213,10 @@ public class AppDbContext : DbContext
             entity.Property(e => e.AccentColor).HasMaxLength(7);
             entity.Property(e => e.IconClass).HasMaxLength(60);
             entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.RequiredPlanSlug).HasMaxLength(100);
             entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
             entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Process).WithMany().HasForeignKey(e => e.WorkflowProcessId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
             entity.HasOne(e => e.Suite).WithMany(s => s.MicroApps).HasForeignKey(e => e.AppSuiteId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
             entity.HasMany(e => e.Domains).WithOne(d => d.MicroApp).HasForeignKey(d => d.MicroAppId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -219,7 +236,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Label).HasMaxLength(100);
             entity.HasOne(e => e.Source).WithMany(a => a.OutboundLinks).HasForeignKey(e => e.SourceMicroAppId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.Target).WithMany().HasForeignKey(e => e.TargetMicroAppId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(e => new { e.SourceMicroAppId, e.TargetMicroAppId }).IsUnique();
+            // Include LinkType so two apps can have both "related" and "workflow-handoff" links
+            entity.HasIndex(e => new { e.SourceMicroAppId, e.TargetMicroAppId, e.LinkType }).IsUnique();
         });
 
         // ── EMS Medication Tracker ─────────────────────────────────────────────
@@ -264,7 +282,9 @@ public class AppDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.TenantId, x.MedicationId }).IsUnique();
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Medication).WithMany(m => m.Configs).HasForeignKey(x => x.MedicationId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.MinCheckFrequencyHours);
         });
 
         modelBuilder.Entity<MedPersonnel>(e =>
@@ -287,6 +307,12 @@ public class AppDbContext : DbContext
             e.Property(x => x.LocationType).HasMaxLength(30).IsRequired();
             e.Property(x => x.Description).HasMaxLength(300);
             e.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+            // Self-referencing hierarchy: Shelf A → Storage Cabinet A → Supply Room
+            e.HasOne(x => x.ParentLocation)
+             .WithMany(x => x.ChildLocations)
+             .HasForeignKey(x => x.ParentLocationId)
+             .OnDelete(DeleteBehavior.Restrict)  // prevent cascade-deleting an entire tree
+             .IsRequired(false);
         });
 
         modelBuilder.Entity<MedContainer>(e =>
@@ -294,8 +320,21 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(120).IsRequired();
             e.Property(x => x.ContainerType).HasMaxLength(40).IsRequired();
-            e.Property(x => x.SealNumber).HasMaxLength(60);
+            e.Property(x => x.SealNumber).HasMaxLength(80);
             e.HasOne(x => x.StorageLocation).WithMany(l => l.Containers).HasForeignKey(x => x.StorageLocationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.SealAppliedBy).WithMany().HasForeignKey(x => x.SealAppliedByPersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+        });
+
+        modelBuilder.Entity<MedSealEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.SealNumber).HasMaxLength(80).IsRequired();
+            e.Property(x => x.EventType).HasMaxLength(20).IsRequired();  // applied | broken
+            e.Property(x => x.Notes).HasMaxLength(300);
+            e.HasIndex(x => new { x.ContainerId, x.OccurredAt });
+            e.HasOne(x => x.Container).WithMany(c => c.SealEvents).HasForeignKey(x => x.ContainerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Personnel).WithMany().HasForeignKey(x => x.PersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+            e.HasOne(x => x.WitnessPersonnel).WithMany().HasForeignKey(x => x.WitnessPersonnelId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
         });
 
         modelBuilder.Entity<MedVial>(e =>
@@ -345,6 +384,8 @@ public class AppDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Discrepancy).HasMaxLength(300);
+            e.Property(x => x.CheckType).HasMaxLength(20).IsRequired();   // physical | seal-verified | inherited
+            e.Property(x => x.InheritedFromSealNumber).HasMaxLength(80);
             e.HasOne(x => x.Session).WithMany(s => s.Items).HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Container).WithMany().HasForeignKey(x => x.ContainerId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
             e.HasOne(x => x.Vial).WithMany().HasForeignKey(x => x.VialId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
@@ -575,6 +616,9 @@ public class AppSuite
     public string IconClass { get; set; } = "bi-grid-fill";
     public string Color { get; set; } = "#2F4F4F";
     public int SortOrder { get; set; } = 0;
+    public bool IsPublic { get; set; } = false;
+    public bool ShowInDashboard { get; set; } = false;
+    public string? RequiredPlanSlug { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -590,7 +634,7 @@ public class MicroApp
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
-    public Guid WorkflowProcessId { get; set; }
+    public Guid? WorkflowProcessId { get; set; }
     public Guid? AppSuiteId { get; set; }
 
     public string DisplayName { get; set; } = "";   // can differ from process name
@@ -604,6 +648,8 @@ public class MicroApp
 
     public string Status { get; set; } = "active";   // active, archived, suspended
     public bool IsPublic { get; set; } = false;
+    public bool ShowInDashboard { get; set; } = false;
+    public string? RequiredPlanSlug { get; set; }
 
     public DateTimeOffset DeployedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -742,6 +788,10 @@ public class MedMedicationConfig
     public bool RequireWitnessForWaste { get; set; } = false;
     public bool IsControlledSubstance { get; set; } = false;
     public bool RequireSealedStorage { get; set; } = false;
+    // null = use agency DefaultCheckFrequencyHours; set to override per drug
+    public int? MinCheckFrequencyHours { get; set; }
+    // When true, vial must be physically counted; seal inheritance does not satisfy this drug's check
+    public bool RequiresPhysicalCount { get; set; } = false;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public MedMedication? Medication { get; set; }
@@ -774,14 +824,18 @@ public class MedStorageLocation
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
-    public string Name { get; set; } = "";            // "Medic 3", "Station 1 Vault"
-    public string LocationType { get; set; } = "unit"; // unit | truck | station | vault
+    public Guid? ParentLocationId { get; set; }       // null = top-level location
+
+    public string Name { get; set; } = "";            // "Medic 3", "Station 1 Vault", "Shelf A"
+    public string LocationType { get; set; } = "unit"; // unit | truck | station | vault | room | cabinet | shelf | drawer
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Tenant? Tenant { get; set; }
+    public MedStorageLocation? ParentLocation { get; set; }
+    public List<MedStorageLocation> ChildLocations { get; set; } = [];
     public List<MedContainer> Containers { get; set; } = [];
 }
 
@@ -797,7 +851,10 @@ public class MedContainer
     public string ContainerType { get; set; } = "drug-box"; // drug-box | bag | vault-drawer
     public bool IsSealable { get; set; } = true;      // supports tamper-evident seals
     public bool IsSealed { get; set; } = false;
-    public string? SealNumber { get; set; }           // printed on tamper-evident seal
+    public string? SealNumber { get; set; }           // current tamper-evident seal (barcode/text)
+    public bool IsMasterSeal { get; set; } = false;   // true = this seal covers all child vials implicitly
+    public DateTimeOffset? SealAppliedAt { get; set; }
+    public Guid? SealAppliedByPersonnelId { get; set; }
     public int CheckFrequencyHours { get; set; } = 24;
     public bool CheckRequiresWitness { get; set; } = false;
     public bool IsControlledSubstance { get; set; } = false;
@@ -806,7 +863,9 @@ public class MedContainer
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public MedStorageLocation? StorageLocation { get; set; }
+    public MedPersonnel? SealAppliedBy { get; set; }
     public List<MedVial> Vials { get; set; } = [];
+    public List<MedSealEvent> SealEvents { get; set; } = [];
 }
 
 /// <summary>
@@ -936,6 +995,9 @@ public class MedAgencyConfig
     public int ExpiryWarningDays { get; set; } = 30;
     public bool RequireWitnessForAllWaste { get; set; } = false;
     public bool RequireWitnessForAllChecks { get; set; } = false;
+    // When true, a sealed container's intact seal satisfies the check for all contents;
+    // audit entries are logged with CheckType="inherited" referencing the seal number
+    public bool AllowSealInheritance { get; set; } = true;
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -952,9 +1014,34 @@ public class MedCheckItem
     public bool SealIntact { get; set; } = true;    // for sealed containers
     public bool Passed { get; set; } = true;
     public string? Discrepancy { get; set; }
+    // physical = manually counted; seal-verified = seal checked intact; inherited = auto-logged from parent seal
+    public string CheckType { get; set; } = "physical";
+    // Populated when CheckType = "inherited"; references the parent container's seal number
+    public string? InheritedFromSealNumber { get; set; }
     public DateTimeOffset CheckedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public MedCheckSession? Session { get; set; }
     public MedContainer? Container { get; set; }
     public MedVial? Vial { get; set; }
+}
+
+/// <summary>
+/// Immutable audit log of every seal applied or broken on a container.
+/// Supports barcode scan and manual text entry of the seal number.
+/// </summary>
+public class MedSealEvent
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ContainerId { get; set; }
+    public string SealNumber { get; set; } = "";      // scanned barcode or manually entered text
+    public string EventType { get; set; } = "applied"; // applied | broken
+    public Guid? PersonnelId { get; set; }
+    public Guid? WitnessPersonnelId { get; set; }
+    public string? Notes { get; set; }
+    public DateTimeOffset OccurredAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public MedContainer? Container { get; set; }
+    public MedPersonnel? Personnel { get; set; }
+    public MedPersonnel? WitnessPersonnel { get; set; }
 }

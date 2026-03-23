@@ -1,9 +1,20 @@
 // Seacoast DevOps brand colors
 // Dark slate green: #2F4F4F  |  Seafoam green: #71B5A1  |  Light seafoam: #A8D5C8
 
+import { useEffect, useState } from "react";
+import type { MicroApp } from "../../types/microapp";
+
 export function LandingPage() {
     const scrollTo = (id: string) =>
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+    const [publicApps, setPublicApps] = useState<MicroApp[]>([]);
+    useEffect(() => {
+        fetch("/api/microapps/public")
+            .then(r => r.ok ? r.json() : [])
+            .then(setPublicApps)
+            .catch(() => {});
+    }, []);
 
     return (
         <div style={{ background: "#fff" }}>
@@ -177,6 +188,58 @@ export function LandingPage() {
             </section>
 
             {/* ── Pricing ── */}
+            {/* ── Platform / Public Apps Feed ── */}
+            {publicApps.length > 0 && (
+                <section id="platform" className="py-5" style={{ background: "#f4f7f6" }}>
+                    <div className="container">
+                        <div className="text-center mb-4">
+                            <h2 className="font-weight-bold" style={{ color: "#2F4F4F" }}>Our Platform</h2>
+                            <p className="text-muted">Purpose-built applications deployed for agencies across government and healthcare.</p>
+                        </div>
+                        <div className="row justify-content-center">
+                            {publicApps.map(app => (
+                                <div key={app.id} className="col-md-4 col-sm-6 mb-4">
+                                    <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: 10 }}>
+                                        <div
+                                            className="card-header border-0 d-flex align-items-center"
+                                            style={{ background: app.primaryColor, borderRadius: "10px 10px 0 0", padding: "1rem 1.25rem" }}
+                                        >
+                                            <i className={`bi ${app.iconClass} mr-2 text-white`} style={{ fontSize: "1.4rem" }} />
+                                            <span className="font-weight-bold text-white">{app.displayName}</span>
+                                            {app.suite && (
+                                                <span className="badge badge-light ml-auto" style={{ fontSize: "0.7rem", opacity: 0.85 }}>
+                                                    {app.suite.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="card-body">
+                                            <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+                                                {app.description ?? "A Seacoast DevOps platform application."}
+                                            </p>
+                                        </div>
+                                        {app.requiredPlanSlug && (
+                                            <div className="card-footer border-0 bg-transparent">
+                                                <small className="text-muted">
+                                                    <i className="bi bi-lock-fill mr-1" />Requires {app.requiredPlanSlug} plan
+                                                </small>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-center mt-2">
+                            <button
+                                className="btn btn-outline-secondary btn-sm"
+                                onClick={() => scrollTo("contact")}
+                            >
+                                <i className="bi bi-envelope-fill mr-1" />Request a Demo
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             <section id="pricing" className="py-5" style={{ background: "#fff" }}>
                 <div className="container py-3">
                     <div className="text-center mb-5">

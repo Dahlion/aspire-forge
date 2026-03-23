@@ -46,7 +46,13 @@ export function ClientPortal({ username, tenantId, logout }: Props) {
         load();
     }, [tenantId]);
 
+    const [activeSuiteId, setActiveSuiteId] = useState<string | null>(null);
+
     const totalApps = groups.reduce((sum, g) => sum + g.apps.length, 0);
+    const suites = groups.filter(g => g.suite !== null).map(g => g.suite!);
+    const visibleGroups = activeSuiteId
+        ? groups.filter(g => (g.suite?.id ?? "ungrouped") === activeSuiteId)
+        : groups;
 
     return (
         <div className="container-xl px-4 pt-4 pb-5">
@@ -73,6 +79,29 @@ export function ClientPortal({ username, tenantId, logout }: Props) {
                 </div>
             </div>
 
+            {/* Suite filter pills — only shown when there are multiple suites */}
+            {!loading && suites.length > 1 && (
+                <div className="d-flex flex-wrap mb-3" style={{ gap: "0.5rem" }}>
+                    <button
+                        className={`btn btn-sm ${activeSuiteId === null ? "btn-success" : "btn-outline-secondary"}`}
+                        style={{ borderRadius: 20 }}
+                        onClick={() => setActiveSuiteId(null)}
+                    >
+                        <i className="bi bi-grid-fill mr-1" />All
+                    </button>
+                    {suites.map(suite => (
+                        <button
+                            key={suite.id}
+                            className={`btn btn-sm ${activeSuiteId === suite.id ? "btn-success" : "btn-outline-secondary"}`}
+                            style={{ borderRadius: 20 }}
+                            onClick={() => setActiveSuiteId(prev => prev === suite.id ? null : suite.id)}
+                        >
+                            <i className={`bi ${suite.iconClass} mr-1`} />{suite.name}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {loading ? (
                 <div className="text-center py-5"><div className="spinner-border text-success" /></div>
             ) : totalApps === 0 ? (
@@ -84,7 +113,7 @@ export function ClientPortal({ username, tenantId, logout }: Props) {
                     </div>
                 </div>
             ) : (
-                groups.map((group, gi) => (
+                visibleGroups.map((group, gi) => (
                     <div key={gi} className="mb-5">
                         {/* Section header */}
                         {group.suite ? (
@@ -132,6 +161,9 @@ function AppCard({ app }: { app: MicroApp }) {
     const handleOpen = () => {
         if (domain && domain.sslStatus === "provisioned") {
             window.open(`https://${domain.hostname}`, "_blank");
+        } else if (!app.workflowProcessId) {
+            // Non-workflow app (e.g. MedTrack): navigate directly to its own route
+            window.location.hash = `/${app.slug}`;
         } else {
             window.location.hash = `/client/app/${app.slug}`;
         }

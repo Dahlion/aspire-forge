@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchCheckSession, addCheckItem, completeCheckSession, abortCheckSession } from '../api';
 import { navigateEms } from '../routing';
 import { T, cardStyle, inputStyle } from '../theme';
-import type { MedCheckSession, MedContainer, MedVial } from '../../../types/ems';
+import type { MedCheckSession, MedCheckItem, MedContainer, MedVial } from '../../../types/ems';
 
 interface Props { tenantId: string; sessionId: string; }
 
@@ -43,11 +43,15 @@ export default function EmsCheckSessionView({ tenantId, sessionId }: Props) {
   const containers = loc?.containers ?? [];
 
   const checkedContainerIds = new Set(session.items.filter(i => i.containerId && !i.vialId).map(i => i.containerId!));
-  const checkedVialIds = new Set(session.items.filter(i => i.vialId).map(i => i.vialId!));
+  const checkedVialIds      = new Set(session.items.filter(i => i.vialId).map(i => i.vialId!));
+  // A master-sealed container also covers all its vials
+  const masterSealedIds = new Set(containers.filter(c => c.isSealed && c.isMasterSeal && checkedContainerIds.has(c.id)).map(c => c.id));
 
   const allContainersHandled = containers.every(c => {
     if (c.isSealed) return checkedContainerIds.has(c.id);
     const activeVials = c.vials.filter(v => v.status === 'stocked' || v.status === 'in-use');
+    // If this container is under a master seal that was checked, vials are satisfied too
+    if (masterSealedIds.has(c.id)) return true;
     return activeVials.every(v => checkedVialIds.has(v.id));
   });
 
@@ -86,6 +90,7 @@ export default function EmsCheckSessionView({ tenantId, sessionId }: Props) {
               sessionId={sessionId}
               checkedContainerIds={checkedContainerIds}
               checkedVialIds={checkedVialIds}
+              sessionItems={session.items}
               onChecked={reload}
             />
           ))}
@@ -110,9 +115,10 @@ export default function EmsCheckSessionView({ tenantId, sessionId }: Props) {
   );
 }
 
-function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerIds, checkedVialIds, onChecked }: {
+function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerIds, checkedVialIds, sessionItems, onChecked }: {
   container: MedContainer; tenantId: string; sessionId: string;
-  checkedContainerIds: Set<string>; checkedVialIds: Set<string>; onChecked: () => void;
+  checkedContainerIds: Set<string>; checkedVialIds: Set<string>;
+  sessionItems: MedCheckItem[]; onChecked: () => void;
 }) {
   const [expanded, setExpanded] = useState(!container.isSealed);
   const [saving, setSaving] = useState<string | null>(null);
@@ -121,6 +127,8 @@ function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerId
   const isContainerChecked = checkedContainerIds.has(container.id);
   const activeVials = container.vials.filter(v => v.status === 'stocked' || v.status === 'in-use');
   const borderColor = isContainerChecked ? T.green : T.border;
+  // Find this container's seal check item (if logged)
+  const containerCheckItem = sessionItems.find(i => i.containerId === container.id && !i.vialId);
 
   async function checkSealedContainer(sealIntact: boolean) {
     setSaving(container.id);
@@ -172,7 +180,13 @@ function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerId
             <div style={{ paddingTop: 12 }}>
               {container.sealNumber && (
                 <div style={{ background: '#0c2a40', border: `1px solid ${T.cyan}`, borderRadius: 8, padding: '6px 12px', fontSize: '0.82rem', color: T.cyan, marginBottom: 12 }}>
-                  <i className="bi bi-shield-check me-2" />Seal #: <strong>{container.sealNumber}</strong>
+                  <i className={`bi ${container.isMasterSeal ? 'bi-shield-fill-check' : 'bi-shield-check'} me-2`} />
+                  {container.isMasterSeal ? 'Master Seal' : 'Seal'} #: <strong>{container.sealNumber}</strong>
+                  {container.isMasterSeal && (
+                    <span style={{ marginLeft: 10, color: T.muted, fontSize: '0.75rem' }}>
+                      — verifying this seal logs all {activeVials.length} vial{activeVials.length !== 1 ? 's' : ''} as inherited
+                    </span>
+                  )}
                 </div>
               )}
               <p style={{ fontSize: '0.88rem', color: T.muted, marginBottom: 12 }}>
@@ -195,11 +209,21 @@ function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerId
             </div>
           ) : (
             <div style={{ paddingTop: 12 }}>
+              {/* Show master seal inherited notice */}
+              {isContainerChecked && container.isMasterSeal && containerCheckItem?.passed && (
+                <div style={{ background: '#0c2a40', border: `1px solid ${T.cyan}`, borderRadius: 8, padding: '6px 12px', fontSize: '0.78rem', color: T.cyan, marginBottom: 10 }}>
+                  <i className="bi bi-shield-fill-check me-2" />
+                  Master seal verified — vials below are logged as <strong>inherited</strong> from seal #{container.sealNumber}
+                </div>
+              )}
+
               {activeVials.length === 0 ? (
                 <p style={{ color: T.muted, textAlign: 'center', padding: '8px 0' }}>No active vials</p>
               ) : (
                 activeVials.map(v => {
                   const checked = checkedVialIds.has(v.id);
+                  const vialItem = sessionItems.find(i => i.vialId === v.id);
+                  const isInherited = vialItem?.checkType === 'inherited';
                   return (
                     <div key={v.id} style={{ background: T.cardAlt, borderRadius: 8, padding: 10, marginBottom: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -209,6 +233,21 @@ function ContainerCheckCard({ container, tenantId, sessionId, checkedContainerId
                           {v.expiresAt && (
                             <div style={{ fontSize: '0.73rem', color: new Date(v.expiresAt) < new Date() ? T.red : T.muted }}>
                               Exp: {new Date(v.expiresAt).toLocaleDateString()}
+                            </div>
+                          )}
+                          {/* Check type badge */}
+                          {checked && vialItem && (
+                            <div style={{ marginTop: 4 }}>
+                              {isInherited ? (
+                                <span style={{ background: '#0c2a40', border: `1px solid ${T.cyan}`, color: T.cyan, borderRadius: 8, fontSize: '0.65rem', padding: '1px 7px', fontWeight: 600 }}>
+                                  <i className="bi bi-shield-fill-check me-1" />
+                                  Inherited from seal #{vialItem.inheritedFromSealNumber ?? container.sealNumber}
+                                </span>
+                              ) : (
+                                <span style={{ background: '#0c3020', border: `1px solid ${T.green}`, color: T.green, borderRadius: 8, fontSize: '0.65rem', padding: '1px 7px', fontWeight: 600 }}>
+                                  <i className="bi bi-clipboard-check me-1" />Physical
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>

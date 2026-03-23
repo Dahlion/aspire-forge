@@ -110,6 +110,13 @@ export function AdminSidebar({ route, tenants, loadingTenants, onNavigate }: Adm
                     />
 
                     <NavItem
+                        icon="bi-boxes"
+                        label="App Manager"
+                        active={isActive("app-manager")}
+                        onClick={() => onNavigate({ kind: "app-manager" })}
+                    />
+
+                    <NavItem
                         icon="bi-grid-1x2-fill"
                         label="App Designer"
                         active={isActive("app-designer")}

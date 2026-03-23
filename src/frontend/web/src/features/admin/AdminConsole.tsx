@@ -8,6 +8,7 @@ import { SubscriptionManagerView } from "./components/SubscriptionManagerView";
 import { BusinessManagerView } from "./components/BusinessManagerView";
 import { MarketingManagerView } from "./components/MarketingManagerView";
 import { FormDesignerView } from "./components/FormDesignerView";
+import { AppManagerView } from "./components/AppManagerView";
 import { AppDesignerView } from "./components/AppDesignerView";
 import { ZipDeployView } from "./components/ZipDeployView";
 
@@ -140,6 +141,7 @@ export function AdminConsole({ enabled }: AdminConsoleProps) {
 
                 {admin.route.kind === "marketing-manager" && <MarketingManagerView />}
                 {admin.route.kind === "form-designer"      && <FormDesignerView />}
+                {admin.route.kind === "app-manager"        && <AppManagerView />}
                 {admin.route.kind === "app-designer"       && <AppDesignerView />}
                 {admin.route.kind === "zip-deploy"         && <ZipDeployView />}
                 {admin.route.kind === "toolbox"            && <ToolboxView />}

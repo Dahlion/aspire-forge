@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AspireForge.ApiService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateB : Migration
+    public partial class InitialDatabaseCreate5 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -72,43 +72,6 @@ namespace AspireForge.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "WorkflowHistories",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    WorkflowInstanceId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FromStepId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ToStepId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ActionBy = table.Column<string>(type: "text", nullable: false),
-                    Comments = table.Column<string>(type: "text", nullable: true),
-                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WorkflowHistories", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "WorkflowProcesses",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    TenantId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    PrimaryColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
-                    AccentColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
-                    IconClass = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
-                    AppSlug = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
-                    FormSchema = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WorkflowProcesses", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AppSuites",
                 columns: table => new
                 {
@@ -120,6 +83,9 @@ namespace AspireForge.ApiService.Migrations
                     IconClass = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
                     Color = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
+                    ShowInDashboard = table.Column<bool>(type: "boolean", nullable: false),
+                    RequiredPlanSlug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
@@ -159,6 +125,7 @@ namespace AspireForge.ApiService.Migrations
                     ExpiryWarningDays = table.Column<int>(type: "integer", nullable: false),
                     RequireWitnessForAllWaste = table.Column<bool>(type: "boolean", nullable: false),
                     RequireWitnessForAllChecks = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowSealInheritance = table.Column<bool>(type: "boolean", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -240,6 +207,7 @@ namespace AspireForge.ApiService.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentLocationId = table.Column<Guid>(type: "uuid", nullable: true),
                     Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
                     LocationType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Description = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
@@ -250,6 +218,12 @@ namespace AspireForge.ApiService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MedStorageLocations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MedStorageLocations_MedStorageLocations_ParentLocationId",
+                        column: x => x.ParentLocationId,
+                        principalTable: "MedStorageLocations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_MedStorageLocations_Tenants_TenantId",
                         column: x => x.TenantId,
@@ -358,94 +332,29 @@ namespace AspireForge.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "WorkflowDeployments",
+                name: "WorkflowProcesses",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DeployedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WorkflowDeployments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_WorkflowDeployments_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_WorkflowDeployments_WorkflowProcesses_WorkflowProcessId",
-                        column: x => x.WorkflowProcessId,
-                        principalTable: "WorkflowProcesses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "WorkflowSteps",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Order = table.Column<int>(type: "integer", nullable: false),
-                    DefaultAssigneeRole = table.Column<string>(type: "text", nullable: true),
-                    AllowBacktracking = table.Column<bool>(type: "boolean", nullable: false),
-                    CanSkip = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WorkflowSteps", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_WorkflowSteps_WorkflowProcesses_WorkflowProcessId",
-                        column: x => x.WorkflowProcessId,
-                        principalTable: "WorkflowProcesses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MicroApps",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
-                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AppSuiteId = table.Column<Guid>(type: "uuid", nullable: true),
-                    DisplayName = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    Slug = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     PrimaryColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
                     AccentColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
                     IconClass = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
-                    DeployedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    AppSlug = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
+                    FormSchema = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MicroApps", x => x.Id);
+                    table.PrimaryKey("PK_WorkflowProcesses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MicroApps_AppSuites_AppSuiteId",
-                        column: x => x.AppSuiteId,
-                        principalTable: "AppSuites",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_MicroApps_Tenants_TenantId",
+                        name: "FK_WorkflowProcesses_Tenants_TenantId",
                         column: x => x.TenantId,
                         principalTable: "Tenants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MicroApps_WorkflowProcesses_WorkflowProcessId",
-                        column: x => x.WorkflowProcessId,
-                        principalTable: "WorkflowProcesses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -491,6 +400,8 @@ namespace AspireForge.ApiService.Migrations
                     RequireWitnessForWaste = table.Column<bool>(type: "boolean", nullable: false),
                     IsControlledSubstance = table.Column<bool>(type: "boolean", nullable: false),
                     RequireSealedStorage = table.Column<bool>(type: "boolean", nullable: false),
+                    MinCheckFrequencyHours = table.Column<int>(type: "integer", nullable: true),
+                    RequiresPhysicalCount = table.Column<bool>(type: "boolean", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -502,33 +413,10 @@ namespace AspireForge.ApiService.Migrations
                         principalTable: "MedMedications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MedContainers",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    StorageLocationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    ContainerType = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    IsSealable = table.Column<bool>(type: "boolean", nullable: false),
-                    IsSealed = table.Column<bool>(type: "boolean", nullable: false),
-                    SealNumber = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
-                    CheckFrequencyHours = table.Column<int>(type: "integer", nullable: false),
-                    CheckRequiresWitness = table.Column<bool>(type: "boolean", nullable: false),
-                    IsControlledSubstance = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MedContainers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MedContainers_MedStorageLocations_StorageLocationId",
-                        column: x => x.StorageLocationId,
-                        principalTable: "MedStorageLocations",
+                        name: "FK_MedMedicationConfigs_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -593,33 +481,176 @@ namespace AspireForge.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "WorkflowInstances",
+                name: "MicroApps",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AppSuiteId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DisplayName = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    PrimaryColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
+                    AccentColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
+                    IconClass = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    IsPublic = table.Column<bool>(type: "boolean", nullable: false),
+                    ShowInDashboard = table.Column<bool>(type: "boolean", nullable: false),
+                    RequiredPlanSlug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    DeployedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MicroApps", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MicroApps_AppSuites_AppSuiteId",
+                        column: x => x.AppSuiteId,
+                        principalTable: "AppSuites",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_MicroApps_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MicroApps_WorkflowProcesses_WorkflowProcessId",
+                        column: x => x.WorkflowProcessId,
+                        principalTable: "WorkflowProcesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WorkflowDeployments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CurrentStepId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    DataJson = table.Column<string>(type: "text", nullable: true),
-                    CurrentAssigneeId = table.Column<string>(type: "text", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DeployedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowDeployments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowDeployments_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_WorkflowDeployments_WorkflowProcesses_WorkflowProcessId",
+                        column: x => x.WorkflowProcessId,
+                        principalTable: "WorkflowProcesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WorkflowSteps",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Order = table.Column<int>(type: "integer", nullable: false),
+                    DefaultAssigneeRole = table.Column<string>(type: "text", nullable: true),
+                    AllowBacktracking = table.Column<bool>(type: "boolean", nullable: false),
+                    CanSkip = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowSteps", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowSteps_WorkflowProcesses_WorkflowProcessId",
+                        column: x => x.WorkflowProcessId,
+                        principalTable: "WorkflowProcesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedCheckSessions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StorageLocationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PersonnelId = table.Column<Guid>(type: "uuid", nullable: false),
+                    WitnessPersonnelId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MedCheckSessions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MedCheckSessions_MedPersonnel_PersonnelId",
+                        column: x => x.PersonnelId,
+                        principalTable: "MedPersonnel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MedCheckSessions_MedPersonnel_WitnessPersonnelId",
+                        column: x => x.WitnessPersonnelId,
+                        principalTable: "MedPersonnel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_MedCheckSessions_MedStorageLocations_StorageLocationId",
+                        column: x => x.StorageLocationId,
+                        principalTable: "MedStorageLocations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MedCheckSessions_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedContainers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StorageLocationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    ContainerType = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    IsSealable = table.Column<bool>(type: "boolean", nullable: false),
+                    IsSealed = table.Column<bool>(type: "boolean", nullable: false),
+                    SealNumber = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    IsMasterSeal = table.Column<bool>(type: "boolean", nullable: false),
+                    SealAppliedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    SealAppliedByPersonnelId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CheckFrequencyHours = table.Column<int>(type: "integer", nullable: false),
+                    CheckRequiresWitness = table.Column<bool>(type: "boolean", nullable: false),
+                    IsControlledSubstance = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_WorkflowInstances", x => x.Id);
+                    table.PrimaryKey("PK_MedContainers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_WorkflowInstances_WorkflowProcesses_WorkflowProcessId",
-                        column: x => x.WorkflowProcessId,
-                        principalTable: "WorkflowProcesses",
+                        name: "FK_MedContainers_MedPersonnel_SealAppliedByPersonnelId",
+                        column: x => x.SealAppliedByPersonnelId,
+                        principalTable: "MedPersonnel",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_WorkflowInstances_WorkflowSteps_CurrentStepId",
-                        column: x => x.CurrentStepId,
-                        principalTable: "WorkflowSteps",
+                        name: "FK_MedContainers_MedStorageLocations_StorageLocationId",
+                        column: x => x.StorageLocationId,
+                        principalTable: "MedStorageLocations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -676,47 +707,72 @@ namespace AspireForge.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MedCheckSessions",
+                name: "WorkflowInstances",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StorageLocationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    PersonnelId = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkflowProcessId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CurrentStepId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    DataJson = table.Column<string>(type: "text", nullable: true),
+                    CurrentAssigneeId = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowInstances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowInstances_WorkflowProcesses_WorkflowProcessId",
+                        column: x => x.WorkflowProcessId,
+                        principalTable: "WorkflowProcesses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_WorkflowInstances_WorkflowSteps_CurrentStepId",
+                        column: x => x.CurrentStepId,
+                        principalTable: "WorkflowSteps",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MedSealEvents",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContainerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SealNumber = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    EventType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    PersonnelId = table.Column<Guid>(type: "uuid", nullable: true),
                     WitnessPersonnelId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    OccurredAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MedCheckSessions", x => x.Id);
+                    table.PrimaryKey("PK_MedSealEvents", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MedCheckSessions_MedPersonnel_PersonnelId",
-                        column: x => x.PersonnelId,
-                        principalTable: "MedPersonnel",
+                        name: "FK_MedSealEvents_MedContainers_ContainerId",
+                        column: x => x.ContainerId,
+                        principalTable: "MedContainers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_MedCheckSessions_MedPersonnel_WitnessPersonnelId",
-                        column: x => x.WitnessPersonnelId,
+                        name: "FK_MedSealEvents_MedPersonnel_PersonnelId",
+                        column: x => x.PersonnelId,
                         principalTable: "MedPersonnel",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_MedCheckSessions_MedStorageLocations_StorageLocationId",
-                        column: x => x.StorageLocationId,
-                        principalTable: "MedStorageLocations",
+                        name: "FK_MedSealEvents_MedPersonnel_WitnessPersonnelId",
+                        column: x => x.WitnessPersonnelId,
+                        principalTable: "MedPersonnel",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_MedCheckSessions_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -767,6 +823,29 @@ namespace AspireForge.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WorkflowHistories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    WorkflowInstanceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FromStepId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ToStepId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ActionBy = table.Column<string>(type: "text", nullable: false),
+                    Comments = table.Column<string>(type: "text", nullable: true),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkflowHistories", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkflowHistories_WorkflowInstances_WorkflowInstanceId",
+                        column: x => x.WorkflowInstanceId,
+                        principalTable: "WorkflowInstances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MedCheckItems",
                 columns: table => new
                 {
@@ -777,6 +856,8 @@ namespace AspireForge.ApiService.Migrations
                     SealIntact = table.Column<bool>(type: "boolean", nullable: false),
                     Passed = table.Column<bool>(type: "boolean", nullable: false),
                     Discrepancy = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    CheckType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    InheritedFromSealNumber = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
                     CheckedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -855,9 +936,9 @@ namespace AspireForge.ApiService.Migrations
                 column: "MicroAppId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppLinks_SourceMicroAppId_TargetMicroAppId",
+                name: "IX_AppLinks_SourceMicroAppId_TargetMicroAppId_LinkType",
                 table: "AppLinks",
-                columns: new[] { "SourceMicroAppId", "TargetMicroAppId" },
+                columns: new[] { "SourceMicroAppId", "TargetMicroAppId", "LinkType" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -923,6 +1004,11 @@ namespace AspireForge.ApiService.Migrations
                 column: "WitnessPersonnelId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MedContainers_SealAppliedByPersonnelId",
+                table: "MedContainers",
+                column: "SealAppliedByPersonnelId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MedContainers_StorageLocationId",
                 table: "MedContainers",
                 column: "StorageLocationId");
@@ -968,6 +1054,26 @@ namespace AspireForge.ApiService.Migrations
                 name: "IX_MedPersonnel_TenantId",
                 table: "MedPersonnel",
                 column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedSealEvents_ContainerId_OccurredAt",
+                table: "MedSealEvents",
+                columns: new[] { "ContainerId", "OccurredAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedSealEvents_PersonnelId",
+                table: "MedSealEvents",
+                column: "PersonnelId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedSealEvents_WitnessPersonnelId",
+                table: "MedSealEvents",
+                column: "WitnessPersonnelId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MedStorageLocations_ParentLocationId",
+                table: "MedStorageLocations",
+                column: "ParentLocationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MedStorageLocations_TenantId",
@@ -1077,6 +1183,11 @@ namespace AspireForge.ApiService.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_WorkflowHistories_WorkflowInstanceId",
+                table: "WorkflowHistories",
+                column: "WorkflowInstanceId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WorkflowInstances_CurrentStepId",
                 table: "WorkflowInstances",
                 column: "CurrentStepId");
@@ -1085,6 +1196,11 @@ namespace AspireForge.ApiService.Migrations
                 name: "IX_WorkflowInstances_WorkflowProcessId",
                 table: "WorkflowInstances",
                 column: "WorkflowProcessId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkflowProcesses_TenantId",
+                table: "WorkflowProcesses",
+                column: "TenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkflowSteps_WorkflowProcessId_Order",
@@ -1120,6 +1236,9 @@ namespace AspireForge.ApiService.Migrations
                 name: "MedMedicationTags");
 
             migrationBuilder.DropTable(
+                name: "MedSealEvents");
+
+            migrationBuilder.DropTable(
                 name: "MedVialEvents");
 
             migrationBuilder.DropTable(
@@ -1138,9 +1257,6 @@ namespace AspireForge.ApiService.Migrations
                 name: "WorkflowHistories");
 
             migrationBuilder.DropTable(
-                name: "WorkflowInstances");
-
-            migrationBuilder.DropTable(
                 name: "MicroApps");
 
             migrationBuilder.DropTable(
@@ -1156,13 +1272,10 @@ namespace AspireForge.ApiService.Migrations
                 name: "MedVials");
 
             migrationBuilder.DropTable(
-                name: "WorkflowSteps");
+                name: "WorkflowInstances");
 
             migrationBuilder.DropTable(
                 name: "AppSuites");
-
-            migrationBuilder.DropTable(
-                name: "MedPersonnel");
 
             migrationBuilder.DropTable(
                 name: "MedContainers");
@@ -1171,13 +1284,19 @@ namespace AspireForge.ApiService.Migrations
                 name: "MedMedications");
 
             migrationBuilder.DropTable(
+                name: "WorkflowSteps");
+
+            migrationBuilder.DropTable(
+                name: "MedPersonnel");
+
+            migrationBuilder.DropTable(
+                name: "MedStorageLocations");
+
+            migrationBuilder.DropTable(
                 name: "WorkflowProcesses");
 
             migrationBuilder.DropTable(
                 name: "MedLicenseLevels");
-
-            migrationBuilder.DropTable(
-                name: "MedStorageLocations");
 
             migrationBuilder.DropTable(
                 name: "Tenants");

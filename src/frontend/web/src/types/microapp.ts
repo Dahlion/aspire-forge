@@ -9,6 +9,9 @@ export interface AppSuite {
     iconClass: string;
     color: string;
     sortOrder: number;
+    isPublic: boolean;
+    showInDashboard: boolean;
+    requiredPlanSlug?: string;
     microApps?: MicroApp[];
     createdAt: string;
     updatedAt: string;
@@ -17,7 +20,7 @@ export interface AppSuite {
 export interface MicroApp {
     id: string;
     tenantId: string;
-    workflowProcessId: string;
+    workflowProcessId?: string;
     appSuiteId?: string;
     displayName: string;
     slug: string;
@@ -27,6 +30,8 @@ export interface MicroApp {
     iconClass: string;
     status: "active" | "archived" | "suspended";
     isPublic: boolean;
+    showInDashboard: boolean;
+    requiredPlanSlug?: string;
     deployedAt: string;
     updatedAt: string;
 
@@ -68,7 +73,7 @@ export interface AppLink {
 
 export interface CreateMicroAppInput {
     tenantId: string;
-    workflowProcessId: string;
+    workflowProcessId?: string;
     displayName: string;
     slug?: string;
     description?: string;
@@ -77,6 +82,8 @@ export interface CreateMicroAppInput {
     accentColor?: string;
     iconClass?: string;
     isPublic?: boolean;
+    showInDashboard?: boolean;
+    requiredPlanSlug?: string;
 }
 
 export interface UpdateMicroAppInput {
@@ -88,6 +95,8 @@ export interface UpdateMicroAppInput {
     iconClass?: string;
     status?: "active" | "archived" | "suspended";
     isPublic?: boolean;
+    showInDashboard?: boolean;
+    requiredPlanSlug?: string;
 }
 
 export interface CreateSuiteInput {
@@ -107,4 +116,7 @@ export interface UpdateSuiteInput {
     iconClass?: string;
     color?: string;
     sortOrder?: number;
+    isPublic?: boolean;
+    showInDashboard?: boolean;
+    requiredPlanSlug?: string;
 }

@@ -2,6 +2,7 @@ import type {
   EmsDashboard, MedLicenseLevel, MedTag, MedMedication, MedMedicationConfig,
   MedPersonnel, MedStorageLocation, MedContainer, MedVial, MedVialEvent,
   MedCheckSession, MedCheckItem, OpenFdaLookup, MedAgencyConfig, EmsPermissions,
+  MedSealEvent,
 } from '../../types/ems';
 
 const BASE = 'http://localhost:5236/api/med';
@@ -126,8 +127,11 @@ export const updateContainer = (id: string, body: Partial<MedContainer>) =>
 export const breakSeal = (id: string, body: { personnelId: string; witnessPersonnelId?: string; notes?: string }) =>
   req<MedContainer>(`${BASE}/containers/${id}/break-seal`, { method: 'POST', body: JSON.stringify(body) });
 
-export const applySeal = (id: string, body: { sealNumber: string; personnelId: string }) =>
+export const applySeal = (id: string, body: { sealNumber: string; personnelId: string; isMasterSeal?: boolean; witnessPersonnelId?: string }) =>
   req<MedContainer>(`${BASE}/containers/${id}/apply-seal`, { method: 'POST', body: JSON.stringify(body) });
+
+export const fetchSealEvents = (containerId: string) =>
+  req<MedSealEvent[]>(`${BASE}/containers/${containerId}/seal-events`);
 
 // ── Vials ─────────────────────────────────────────────────────────────────────
 export const fetchVials = (tenantId: string, params?: {

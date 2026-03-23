@@ -53,6 +53,18 @@ public class MicroAppsController : ControllerBase
         return app == null ? NotFound() : Ok(app);
     }
 
+    /// <summary>GET /api/microapps/public — apps flagged IsPublic+ShowInDashboard for the landing page</summary>
+    [HttpGet("public")]
+    public async Task<IActionResult> GetPublic()
+    {
+        var apps = await _db.MicroApps
+            .Where(a => a.IsPublic && a.ShowInDashboard && a.Status == "active")
+            .Include(a => a.Suite)
+            .OrderBy(a => a.DisplayName)
+            .ToListAsync();
+        return Ok(apps);
+    }
+
     /// <summary>GET /api/microapps/resolve?hostname=ems.cityofacme.gov</summary>
     [HttpGet("resolve")]
     public async Task<IActionResult> Resolve([FromQuery] string hostname)
@@ -87,7 +99,7 @@ public class MicroAppsController : ControllerBase
         if (!await _db.Tenants.AnyAsync(t => t.Id == req.TenantId))
             return BadRequest("Tenant not found.");
 
-        if (!await _db.WorkflowProcesses.AnyAsync(p => p.Id == req.WorkflowProcessId))
+        if (req.WorkflowProcessId.HasValue && !await _db.WorkflowProcesses.AnyAsync(p => p.Id == req.WorkflowProcessId))
             return BadRequest("WorkflowProcess not found.");
 
         var slug = Slugify(req.Slug ?? req.DisplayName);
@@ -107,6 +119,8 @@ public class MicroAppsController : ControllerBase
             IconClass         = req.IconClass    ?? "bi-diagram-3-fill",
             Status            = "active",
             IsPublic          = req.IsPublic,
+            ShowInDashboard   = req.ShowInDashboard,
+            RequiredPlanSlug  = req.RequiredPlanSlug,
         };
 
         _db.MicroApps.Add(app);
@@ -134,9 +148,11 @@ public class MicroAppsController : ControllerBase
         app.AccentColor  = req.AccentColor  ?? app.AccentColor;
         app.IconClass    = req.IconClass    ?? app.IconClass;
         app.AppSuiteId   = req.AppSuiteId   ?? app.AppSuiteId;
-        app.Status       = req.Status       ?? app.Status;
-        app.IsPublic     = req.IsPublic     ?? app.IsPublic;
-        app.UpdatedAt    = DateTimeOffset.UtcNow;
+        app.Status           = req.Status          ?? app.Status;
+        app.IsPublic         = req.IsPublic         ?? app.IsPublic;
+        app.ShowInDashboard  = req.ShowInDashboard  ?? app.ShowInDashboard;
+        app.RequiredPlanSlug = req.RequiredPlanSlug ?? app.RequiredPlanSlug;
+        app.UpdatedAt        = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
         return Ok(app);
@@ -298,26 +314,30 @@ public class MicroAppsController : ControllerBase
 
 public record CreateMicroAppRequest(
     Guid    TenantId,
-    Guid    WorkflowProcessId,
+    Guid?   WorkflowProcessId,
     string  DisplayName,
-    string? Slug         = null,
-    string? Description  = null,
-    Guid?   AppSuiteId   = null,
-    string? PrimaryColor = null,
-    string? AccentColor  = null,
-    string? IconClass    = null,
-    bool    IsPublic     = false
+    string? Slug            = null,
+    string? Description     = null,
+    Guid?   AppSuiteId      = null,
+    string? PrimaryColor    = null,
+    string? AccentColor     = null,
+    string? IconClass       = null,
+    bool    IsPublic        = false,
+    bool    ShowInDashboard = false,
+    string? RequiredPlanSlug = null
 );
 
 public record UpdateMicroAppRequest(
-    string? DisplayName  = null,
-    string? Description  = null,
-    Guid?   AppSuiteId   = null,
-    string? PrimaryColor = null,
-    string? AccentColor  = null,
-    string? IconClass    = null,
-    string? Status       = null,
-    bool?   IsPublic     = null
+    string? DisplayName      = null,
+    string? Description      = null,
+    Guid?   AppSuiteId       = null,
+    string? PrimaryColor     = null,
+    string? AccentColor      = null,
+    string? IconClass        = null,
+    string? Status           = null,
+    bool?   IsPublic         = null,
+    bool?   ShowInDashboard  = null,
+    string? RequiredPlanSlug = null
 );
 
 public record AddDomainRequest(

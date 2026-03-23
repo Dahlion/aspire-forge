@@ -351,15 +351,17 @@ function MedConfigPanel({ tenantId, medId, existingConfig }: {
     }
   }, [medId]);
 
-  const localCfg = cfg ?? { requireWitnessForWaste: false, isControlledSubstance: false, requireSealedStorage: false } as any;
+  const localCfg = cfg ?? { requireWitnessForWaste: false, isControlledSubstance: false, requireSealedStorage: false, minCheckFrequencyHours: undefined, requiresPhysicalCount: false } as any;
 
   async function save() {
     setSaving(true);
     try {
       const updated = await upsertMedConfig(tenantId, medId, {
-        requireWitnessForWaste: localCfg.requireWitnessForWaste,
-        isControlledSubstance: localCfg.isControlledSubstance,
-        requireSealedStorage: localCfg.requireSealedStorage,
+        requireWitnessForWaste:   localCfg.requireWitnessForWaste,
+        isControlledSubstance:    localCfg.isControlledSubstance,
+        requireSealedStorage:     localCfg.requireSealedStorage,
+        minCheckFrequencyHours:   localCfg.minCheckFrequencyHours ?? undefined,
+        requiresPhysicalCount:    localCfg.requiresPhysicalCount,
       });
       setCfg(updated);
       setSaved(true);
@@ -387,6 +389,7 @@ function MedConfigPanel({ tenantId, medId, existingConfig }: {
           { key: 'isControlledSubstance', label: 'Treat as Controlled Substance', desc: 'Enables extra logging and DEA tracking' },
           { key: 'requireWitnessForWaste', label: 'Require Witness for Waste', desc: 'Waste events need a witness signature' },
           { key: 'requireSealedStorage', label: 'Require Sealed Storage', desc: 'Vial must be in a sealed container' },
+          { key: 'requiresPhysicalCount', label: 'Require Physical Count', desc: 'Seal inheritance does not satisfy checks for this drug — must be physically verified' },
         ].map(item => (
           <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
@@ -406,6 +409,40 @@ function MedConfigPanel({ tenantId, medId, existingConfig }: {
             </button>
           </div>
         ))}
+      </div>
+
+      {/* Per-drug check frequency override */}
+      <div style={{ marginTop: 12, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+        <div style={{ color: T.text, fontSize: '0.82rem', fontWeight: 600, marginBottom: 2 }}>Min Check Frequency Override</div>
+        <div style={{ color: T.muted, fontSize: '0.72rem', marginBottom: 6 }}>
+          Override the agency default for this drug specifically. Leave blank to use the agency default.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="number" min={1}
+            style={{ ...inputStyle, width: 100, padding: '7px 10px', fontSize: '0.85rem' }}
+            placeholder="hours"
+            value={localCfg.minCheckFrequencyHours ?? ''}
+            onChange={e => {
+              const v = e.target.value ? parseInt(e.target.value) : null;
+              setCfg(c => ({ ...c!, minCheckFrequencyHours: v ?? undefined }));
+            }}
+          />
+          <span style={{ color: T.muted, fontSize: '0.78rem' }}>hours</span>
+          {localCfg.minCheckFrequencyHours && (
+            <span style={{ color: T.muted, fontSize: '0.75rem' }}>
+              = {localCfg.minCheckFrequencyHours % 168 === 0 ? `${localCfg.minCheckFrequencyHours / 168}w`
+                : localCfg.minCheckFrequencyHours % 24 === 0 ? `${localCfg.minCheckFrequencyHours / 24}d`
+                : `${localCfg.minCheckFrequencyHours}h`}
+            </span>
+          )}
+          {localCfg.minCheckFrequencyHours && (
+            <button onClick={() => setCfg(c => ({ ...c!, minCheckFrequencyHours: undefined }))}
+              style={{ background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: '0.8rem', padding: '2px 4px' }}>
+              <i className="bi bi-x-circle" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspireForge.ApiService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260322032123_InitialCreateB")]
-    partial class InitialCreateB
+    [Migration("20260323165044_InitialDatabaseCreate5")]
+    partial class InitialDatabaseCreate5
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -91,7 +91,7 @@ namespace AspireForge.ApiService.Migrations
 
                     b.HasIndex("TargetMicroAppId");
 
-                    b.HasIndex("SourceMicroAppId", "TargetMicroAppId")
+                    b.HasIndex("SourceMicroAppId", "TargetMicroAppId", "LinkType")
                         .IsUnique();
 
                     b.ToTable("AppLinks");
@@ -120,10 +120,20 @@ namespace AspireForge.ApiService.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<string>("RequiredPlanSlug")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ShowInDashboard")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -281,6 +291,9 @@ namespace AspireForge.ApiService.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<bool>("AllowSealInheritance")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("DefaultCheckFrequencyHours")
                         .HasColumnType("integer");
 
@@ -352,6 +365,11 @@ namespace AspireForge.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CheckType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTimeOffset>("CheckedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -361,6 +379,10 @@ namespace AspireForge.ApiService.Migrations
                     b.Property<string>("Discrepancy")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("InheritedFromSealNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<bool>("Passed")
                         .HasColumnType("boolean");
@@ -460,6 +482,9 @@ namespace AspireForge.ApiService.Migrations
                     b.Property<bool>("IsControlledSubstance")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsMasterSeal")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsSealable")
                         .HasColumnType("boolean");
 
@@ -471,9 +496,15 @@ namespace AspireForge.ApiService.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<DateTimeOffset?>("SealAppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SealAppliedByPersonnelId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SealNumber")
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<Guid>("StorageLocationId")
                         .HasColumnType("uuid");
@@ -482,6 +513,8 @@ namespace AspireForge.ApiService.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SealAppliedByPersonnelId");
 
                     b.HasIndex("StorageLocationId");
 
@@ -620,10 +653,16 @@ namespace AspireForge.ApiService.Migrations
                     b.Property<Guid>("MedicationId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("MinCheckFrequencyHours")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("RequireSealedStorage")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("RequireWitnessForWaste")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RequiresPhysicalCount")
                         .HasColumnType("boolean");
 
                     b.Property<Guid>("TenantId")
@@ -711,6 +750,52 @@ namespace AspireForge.ApiService.Migrations
                     b.ToTable("MedPersonnel");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedSealEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SealNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid?>("WitnessPersonnelId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonnelId");
+
+                    b.HasIndex("WitnessPersonnelId");
+
+                    b.HasIndex("ContainerId", "OccurredAt");
+
+                    b.ToTable("MedSealEvents");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -737,6 +822,9 @@ namespace AspireForge.ApiService.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<Guid?>("ParentLocationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -744,6 +832,8 @@ namespace AspireForge.ApiService.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentLocationId");
 
                     b.HasIndex("TenantId");
 
@@ -966,6 +1056,13 @@ namespace AspireForge.ApiService.Migrations
                         .HasMaxLength(7)
                         .HasColumnType("character varying(7)");
 
+                    b.Property<string>("RequiredPlanSlug")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ShowInDashboard")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -982,7 +1079,7 @@ namespace AspireForge.ApiService.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("WorkflowProcessId")
+                    b.Property<Guid?>("WorkflowProcessId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -1268,6 +1365,8 @@ namespace AspireForge.ApiService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("WorkflowInstanceId");
+
                     b.ToTable("WorkflowHistories");
                 });
 
@@ -1359,6 +1458,8 @@ namespace AspireForge.ApiService.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("WorkflowProcesses");
                 });
@@ -1527,11 +1628,18 @@ namespace AspireForge.ApiService.Migrations
 
             modelBuilder.Entity("AspireForge.ApiService.Data.MedContainer", b =>
                 {
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "SealAppliedBy")
+                        .WithMany()
+                        .HasForeignKey("SealAppliedByPersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("AspireForge.ApiService.Data.MedStorageLocation", "StorageLocation")
                         .WithMany("Containers")
                         .HasForeignKey("StorageLocationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("SealAppliedBy");
 
                     b.Navigation("StorageLocation");
                 });
@@ -1563,6 +1671,12 @@ namespace AspireForge.ApiService.Migrations
                     b.HasOne("AspireForge.ApiService.Data.MedMedication", "Medication")
                         .WithMany("Configs")
                         .HasForeignKey("MedicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1607,13 +1721,45 @@ namespace AspireForge.ApiService.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.MedSealEvent", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.MedContainer", "Container")
+                        .WithMany("SealEvents")
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "Personnel")
+                        .WithMany()
+                        .HasForeignKey("PersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("AspireForge.ApiService.Data.MedPersonnel", "WitnessPersonnel")
+                        .WithMany()
+                        .HasForeignKey("WitnessPersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Container");
+
+                    b.Navigation("Personnel");
+
+                    b.Navigation("WitnessPersonnel");
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
                 {
+                    b.HasOne("AspireForge.ApiService.Data.MedStorageLocation", "ParentLocation")
+                        .WithMany("ChildLocations")
+                        .HasForeignKey("ParentLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("AspireForge.ApiService.Data.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ParentLocation");
 
                     b.Navigation("Tenant");
                 });
@@ -1696,8 +1842,7 @@ namespace AspireForge.ApiService.Migrations
                     b.HasOne("AspireForge.ApiService.Data.WorkflowProcess", "Process")
                         .WithMany()
                         .HasForeignKey("WorkflowProcessId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Process");
 
@@ -1758,6 +1903,15 @@ namespace AspireForge.ApiService.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowHistory", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.WorkflowInstance", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowInstance", b =>
                 {
                     b.HasOne("AspireForge.ApiService.Data.WorkflowStep", "CurrentStep")
@@ -1775,6 +1929,14 @@ namespace AspireForge.ApiService.Migrations
                     b.Navigation("CurrentStep");
 
                     b.Navigation("Process");
+                });
+
+            modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowProcess", b =>
+                {
+                    b.HasOne("AspireForge.ApiService.Data.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("AspireForge.ApiService.Data.WorkflowStep", b =>
@@ -1798,6 +1960,8 @@ namespace AspireForge.ApiService.Migrations
 
             modelBuilder.Entity("AspireForge.ApiService.Data.MedContainer", b =>
                 {
+                    b.Navigation("SealEvents");
+
                     b.Navigation("Vials");
                 });
 
@@ -1810,6 +1974,8 @@ namespace AspireForge.ApiService.Migrations
 
             modelBuilder.Entity("AspireForge.ApiService.Data.MedStorageLocation", b =>
                 {
+                    b.Navigation("ChildLocations");
+
                     b.Navigation("Containers");
                 });
 

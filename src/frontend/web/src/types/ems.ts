@@ -63,6 +63,8 @@ export interface MedMedicationConfig {
   requireWitnessForWaste: boolean;
   isControlledSubstance: boolean;
   requireSealedStorage: boolean;
+  minCheckFrequencyHours?: number;   // null = use agency default
+  requiresPhysicalCount: boolean;    // overrides seal inheritance for this drug
   updatedAt: string;
 }
 
@@ -85,12 +87,15 @@ export interface MedPersonnel {
 export interface MedStorageLocation {
   id: string;
   tenantId: string;
+  parentLocationId?: string;
   name: string;
-  locationType: string;  // unit | truck | station | vault
+  locationType: string;  // unit | truck | station | vault | room | cabinet | shelf | drawer
   description?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  parentLocation?: MedStorageLocation;
+  childLocations?: MedStorageLocation[];
   containers: MedContainer[];
 }
 
@@ -102,6 +107,9 @@ export interface MedContainer {
   isSealable: boolean;
   isSealed: boolean;
   sealNumber?: string;
+  isMasterSeal: boolean;         // seal covers all child vials (no need to check individually)
+  sealAppliedAt?: string;
+  sealAppliedByPersonnelId?: string;
   checkFrequencyHours: number;
   checkRequiresWitness: boolean;
   isControlledSubstance: boolean;
@@ -109,7 +117,23 @@ export interface MedContainer {
   createdAt: string;
   updatedAt: string;
   storageLocation?: MedStorageLocation;
+  sealAppliedBy?: MedPersonnel;
+  sealEvents?: MedSealEvent[];
   vials: MedVial[];
+}
+
+export interface MedSealEvent {
+  id: string;
+  containerId: string;
+  sealNumber: string;
+  eventType: string;  // applied | broken
+  personnelId?: string;
+  witnessPersonnelId?: string;
+  notes?: string;
+  occurredAt: string;
+  createdAt: string;
+  personnel?: MedPersonnel;
+  witnessPersonnel?: MedPersonnel;
 }
 
 export type VialStatus =
@@ -189,6 +213,8 @@ export interface MedCheckItem {
   sealIntact: boolean;
   passed: boolean;
   discrepancy?: string;
+  checkType: string;                  // physical | seal-verified | inherited
+  inheritedFromSealNumber?: string;   // populated when checkType = 'inherited'
   checkedAt: string;
   container?: MedContainer;
   vial?: MedVial;
@@ -226,6 +252,7 @@ export interface MedAgencyConfig {
   expiryWarningDays: number;
   requireWitnessForAllWaste: boolean;
   requireWitnessForAllChecks: boolean;
+  allowSealInheritance: boolean;  // master seal on a container auto-satisfies child vial checks
   updatedAt: string;
 }
 
@@ -285,6 +312,10 @@ export const LOCATION_TYPE_ICONS: Record<string, string> = {
   truck:   'bi-truck',
   station: 'bi-building',
   vault:   'bi-safe',
+  room:    'bi-door-open',
+  cabinet: 'bi-archive',
+  shelf:   'bi-list-columns',
+  drawer:  'bi-inbox',
 };
 
 export function personnelFullName(p: MedPersonnel): string {

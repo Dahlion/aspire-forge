@@ -115,6 +115,12 @@ export default function EmsAgencyConfigView({ tenantId }: Props) {
             value={form.requireWitnessForAllWaste} onChange={v => set('requireWitnessForAllWaste', v)} />
           <ToggleRow label="Require Witness for All Checks" desc="All check sessions need a witness"
             value={form.requireWitnessForAllChecks} onChange={v => set('requireWitnessForAllChecks', v)} />
+          <ToggleRow
+            label="Allow Seal Inheritance"
+            desc="When a master seal is intact on a container, child vials are automatically logged as checked (inherited)"
+            value={form.allowSealInheritance}
+            onChange={v => set('allowSealInheritance', v)}
+          />
         </div>
       </Section>
 

@@ -1536,7 +1536,7 @@ function AppBuilderTab() {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-type Tab = "builder" | "apps" | "suites" | "workflows";
+type Tab = "builder" | "apps" | "suites" | "workflows"; // apps/suites kept for import compatibility
 
 export function AppDesignerView() {
     const [tab, setTab] = useState<Tab>("builder");
@@ -1582,6 +1582,10 @@ export function AppDesignerView() {
             {tab === "apps"      && <MicroAppsView />}
             {tab === "suites"    && <AppSuitesView />}
             {tab === "workflows" && <WorkflowsView />}
+            <small className="text-muted d-block mt-2">
+                <i className="bi bi-boxes mr-1" />
+                To control public visibility and subscription requirements, use <strong>App Manager</strong> in the sidebar.
+            </small>
         </div>
     );
 }

@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { fetchLocation, createContainer, updateContainer, breakSeal, applySeal, fetchPersonnel, fetchContainerDetail } from '../api';
+import { fetchLocation, fetchLocations, createContainer, updateContainer, breakSeal, applySeal, fetchPersonnel, fetchContainerDetail } from '../api';
 import { navigateEms } from '../routing';
 import { T, cardStyle, cardHeaderStyle, inputStyle, btnBackStyle } from '../theme';
 import type { MedStorageLocation, MedContainer, MedPersonnel } from '../../../types/ems';
+import { LOCATION_TYPE_ICONS } from '../../../types/ems';
 
 type ContainerCheckInfo = { lastCheckedAt: string | null; nextDueAt: string; isOverdue: boolean };
 
 interface Props { tenantId: string; locationId: string; }
+
+type AllLocations = MedStorageLocation[];
 
 const CONTAINER_TYPES = [
   { value: 'drug-box', label: 'Drug Box' },
@@ -22,24 +25,27 @@ const emptyContainerForm = () => ({
 });
 
 export default function EmsLocationDetail({ tenantId, locationId }: Props) {
-  const [location, setLocation] = useState<MedStorageLocation | null>(null);
-  const [personnel, setPersonnel] = useState<MedPersonnel[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [location, setLocation]     = useState<MedStorageLocation | null>(null);
+  const [allLocations, setAllLocations] = useState<AllLocations>([]);
+  const [personnel, setPersonnel]   = useState<MedPersonnel[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [showContainerForm, setShowContainerForm] = useState(false);
-  const [editContainerId, setEditContainerId] = useState<string | null>(null);
-  const [containerForm, setContainerForm] = useState(emptyContainerForm());
-  const [saving, setSaving] = useState(false);
+  const [editContainerId, setEditContainerId]     = useState<string | null>(null);
+  const [containerForm, setContainerForm]         = useState(emptyContainerForm());
+  const [saving, setSaving]     = useState(false);
   const [sealModal, setSealModal] = useState<{ container: MedContainer; action: 'break' | 'apply' } | null>(null);
   const [checkInfo, setCheckInfo] = useState<Record<string, ContainerCheckInfo>>({});
 
   const reload = async () => {
-    const [loc, pers] = await Promise.all([
+    const [loc, pers, allLocs] = await Promise.all([
       fetchLocation(tenantId, locationId),
       fetchPersonnel(tenantId, true),
-    ]).catch(e => { console.error(e); return [null, []]; }) as [MedStorageLocation | null, MedPersonnel[]];
+      fetchLocations(tenantId),
+    ]).catch(e => { console.error(e); return [null, [], []]; }) as [MedStorageLocation | null, MedPersonnel[], AllLocations];
     if (loc) {
       setLocation(loc);
       setPersonnel(pers);
+      setAllLocations(allLocs);
       // Fetch check schedule for each container in parallel
       const infos = await Promise.all(
         loc.containers.map(c => fetchContainerDetail(c.id).catch(() => null))
@@ -92,6 +98,8 @@ export default function EmsLocationDetail({ tenantId, locationId }: Props) {
 
   const activeVialCount = location.containers.flatMap(c => c.vials ?? []).filter(v => v.status === 'stocked' || v.status === 'in-use').length;
   const brokenSeals = location.containers.filter(c => c.isSealable && !c.isSealed).length;
+  const childLocations = allLocations.filter(l => l.parentLocationId === locationId);
+  const parentLocation = location.parentLocationId ? allLocations.find(l => l.id === location.parentLocationId) : null;
 
   return (
     <div>
@@ -114,6 +122,42 @@ export default function EmsLocationDetail({ tenantId, locationId }: Props) {
           <i className="bi bi-plus-lg me-1" />Container
         </button>
       </div>
+
+      {/* Breadcrumb: parent location */}
+      {parentLocation && (
+        <div style={{ marginBottom: 10 }}>
+          <button onClick={() => navigateEms({ kind: 'location', locationId: parentLocation.id })}
+            style={{ background: T.cardAlt, border: `1px solid ${T.border}`, borderRadius: 8, color: T.muted, padding: '5px 12px', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <i className={`bi ${LOCATION_TYPE_ICONS[parentLocation.locationType] ?? 'bi-building'}`} />
+            <span>{parentLocation.name}</span>
+            <i className="bi bi-chevron-right" style={{ fontSize: '0.7rem' }} />
+          </button>
+        </div>
+      )}
+
+      {/* Child locations */}
+      {childLocations.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: '0.78rem', color: T.muted, fontWeight: 600, marginBottom: 6 }}>
+            <i className="bi bi-diagram-3 me-1" />Sub-Locations ({childLocations.length})
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {childLocations.map(cl => {
+              const clBroken = cl.containers.filter(c => c.isSealable && !c.isSealed).length;
+              return (
+                <button key={cl.id}
+                  onClick={() => navigateEms({ kind: 'location', locationId: cl.id })}
+                  style={{ background: T.cardAlt, border: `1px solid ${clBroken > 0 ? T.red : T.border}`, borderRadius: 10, color: T.text, padding: '6px 12px', cursor: 'pointer', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <i className={`bi ${LOCATION_TYPE_ICONS[cl.locationType] ?? 'bi-building'}`} style={{ color: T.accent }} />
+                  <span>{cl.name}</span>
+                  <span style={{ color: T.muted, fontSize: '0.72rem' }}>({cl.containers.length})</span>
+                  {clBroken > 0 && <span style={{ color: T.red, fontSize: '0.7rem' }}>⚠</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Container form */}
       {showContainerForm && (
@@ -281,7 +325,14 @@ function ContainerCard({ container, checkInfo, onEdit, onBreakSeal, onApplySeal 
               border: `1px solid ${container.isSealed ? T.green : T.amber}`,
               borderRadius: 8, fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px',
             }}>
-              {container.isSealed ? `🔒 ${container.sealNumber ?? 'Sealed'}` : '🔓 Unsealed'}
+              {container.isSealed
+                ? `${container.isMasterSeal ? '🔐' : '🔒'} ${container.sealNumber ?? 'Sealed'}`
+                : '🔓 Unsealed'}
+            </span>
+          )}
+          {container.isMasterSeal && container.isSealed && (
+            <span style={{ background: '#1a2a40', color: T.cyan, border: `1px solid ${T.cyan}55`, borderRadius: 8, fontSize: '0.65rem', padding: '2px 7px', fontWeight: 600 }}>
+              <i className="bi bi-shield-fill-check me-1" />Master
             </span>
           )}
           {container.isControlledSubstance && (
@@ -369,11 +420,12 @@ function SealActionModal({ action, container, personnel, onClose, onDone }: {
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [personnelId, setPersonnelId] = useState('');
-  const [witnessId, setWitnessId] = useState('');
-  const [sealNumber, setSealNumber] = useState('');
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [personnelId, setPersonnelId]   = useState('');
+  const [witnessId, setWitnessId]       = useState('');
+  const [sealNumber, setSealNumber]     = useState('');
+  const [isMasterSeal, setIsMasterSeal] = useState(false);
+  const [notes, setNotes]               = useState('');
+  const [saving, setSaving]             = useState(false);
 
   async function submit() {
     setSaving(true);
@@ -382,15 +434,17 @@ function SealActionModal({ action, container, personnel, onClose, onDone }: {
         await breakSeal(container.id, { personnelId, witnessPersonnelId: witnessId || undefined, notes: notes || undefined });
       } else {
         if (!sealNumber) { alert('Seal number required.'); setSaving(false); return; }
-        await applySeal(container.id, { sealNumber, personnelId });
+        await applySeal(container.id, { sealNumber, personnelId, isMasterSeal, witnessPersonnelId: witnessId || undefined });
       }
       onDone();
     } catch (e: any) { alert(e.message); } finally { setSaving(false); }
   }
 
+  const canSubmit = !saving && (action === 'apply' ? !!sealNumber : !!notes);
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1050, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid ${T.border}` }}>
           <h6 style={{ margin: 0, fontWeight: 700, color: T.text }}>
             {action === 'break' ? '🔓 Break Seal' : '🔒 Apply Seal'} — {container.name}
@@ -399,11 +453,55 @@ function SealActionModal({ action, container, personnel, onClose, onDone }: {
         </div>
         <div style={{ padding: 16 }}>
           {action === 'apply' && (
-            <div className="mb-3">
-              <label style={lbl}>New Seal Number *</label>
-              <input style={{ ...inputStyle, width: '100%', padding: '10px 12px' }} placeholder="e.g. A-2204" value={sealNumber} onChange={e => setSealNumber(e.target.value)} />
-            </div>
+            <>
+              <div className="mb-3">
+                <label style={lbl}>New Seal Number *</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    style={{ ...inputStyle, flex: 1, padding: '10px 12px' }}
+                    placeholder="Scan barcode or type manually…"
+                    value={sealNumber}
+                    onChange={e => setSealNumber(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      const val = prompt('Scan or enter seal barcode:');
+                      if (val) setSealNumber(val.trim());
+                    }}
+                    style={{ background: T.cardAlt, border: `1px solid ${T.border}`, borderRadius: 8, color: T.cyan, padding: '10px 12px', cursor: 'pointer', flexShrink: 0 }}
+                    title="Scan barcode"
+                  >
+                    <i className="bi bi-upc-scan" />
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: T.muted, marginTop: 3 }}>
+                  Tip: use a barcode scanner — most USB/Bluetooth scanners act as a keyboard and fill this field automatically.
+                </div>
+              </div>
+              <div className="mb-3">
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                  <div>
+                    <div style={{ color: T.text, fontSize: '0.85rem', fontWeight: 600 }}>Master Seal</div>
+                    <div style={{ color: T.muted, fontSize: '0.72rem', marginTop: 1 }}>
+                      When intact, automatically satisfies checks for all vials inside this container
+                    </div>
+                  </div>
+                  <button onClick={() => setIsMasterSeal(v => !v)}
+                    style={{ flexShrink: 0, width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: isMasterSeal ? T.cyan : '#374151', position: 'relative', transition: 'background 0.2s' }}>
+                    <span style={{ position: 'absolute', top: 3, left: isMasterSeal ? 22 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+                  </button>
+                </label>
+                {isMasterSeal && (
+                  <div style={{ background: '#0c2a40', border: `1px solid ${T.cyan}`, borderRadius: 8, padding: '6px 10px', marginTop: 8, fontSize: '0.78rem', color: T.cyan }}>
+                    <i className="bi bi-shield-fill-check me-2" />
+                    Check sessions will log vials as <strong>inherited</strong> from this seal when it is intact.
+                  </div>
+                )}
+              </div>
+            </>
           )}
+
           <div className="mb-3">
             <label style={lbl}>Performed By</label>
             <select style={{ ...inputStyle, width: '100%', padding: '10px 12px' }} value={personnelId} onChange={e => setPersonnelId(e.target.value)}>
@@ -411,29 +509,30 @@ function SealActionModal({ action, container, personnel, onClose, onDone }: {
               {personnel.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName} — {p.licenseLevel?.name}</option>)}
             </select>
           </div>
+
+          <div className="mb-3">
+            <label style={lbl}>Witness</label>
+            <select style={{ ...inputStyle, width: '100%', padding: '10px 12px' }} value={witnessId} onChange={e => setWitnessId(e.target.value)}>
+              <option value="">None</option>
+              {personnel.filter(p => p.id !== personnelId).map(p => (
+                <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+              ))}
+            </select>
+          </div>
+
           {action === 'break' && (
-            <>
-              <div className="mb-3">
-                <label style={lbl}>Witness</label>
-                <select style={{ ...inputStyle, width: '100%', padding: '10px 12px' }} value={witnessId} onChange={e => setWitnessId(e.target.value)}>
-                  <option value="">None</option>
-                  {personnel.filter(p => p.id !== personnelId).map(p => (
-                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-3">
-                <label style={lbl}>Reason / Notes *</label>
-                <textarea style={{ ...inputStyle, width: '100%', padding: '10px 12px', resize: 'none' }} rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="State reason for breaking seal…" />
-              </div>
-            </>
+            <div className="mb-3">
+              <label style={lbl}>Reason / Notes *</label>
+              <textarea style={{ ...inputStyle, width: '100%', padding: '10px 12px', resize: 'none' }} rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="State reason for breaking seal…" />
+            </div>
           )}
-          <button onClick={submit} disabled={saving || (action === 'break' && !notes)}
+
+          <button onClick={submit} disabled={!canSubmit}
             style={{
               width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', fontWeight: 700,
-              background: (saving || (action === 'break' && !notes)) ? '#1a1a2e' : (action === 'break' ? T.red : T.green),
-              color: (saving || (action === 'break' && !notes)) ? T.muted : '#fff',
-              cursor: (saving || (action === 'break' && !notes)) ? 'not-allowed' : 'pointer', fontSize: '1rem',
+              background: !canSubmit ? '#1a1a2e' : (action === 'break' ? T.red : T.green),
+              color: !canSubmit ? T.muted : '#fff',
+              cursor: !canSubmit ? 'not-allowed' : 'pointer', fontSize: '1rem',
             }}>
             {saving ? <span className="spinner-border spinner-border-sm me-2" /> : null}
             {action === 'break' ? 'Confirm Break Seal' : 'Apply Seal'}

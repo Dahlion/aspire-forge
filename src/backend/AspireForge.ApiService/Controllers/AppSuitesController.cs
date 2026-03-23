@@ -61,13 +61,16 @@ public class AppSuitesController : ControllerBase
 
         var suite = new AppSuite
         {
-            TenantId    = req.TenantId,
-            Name        = req.Name.Trim(),
-            Slug        = slug,
-            Description = req.Description,
-            IconClass   = req.IconClass  ?? "bi-grid-fill",
-            Color       = req.Color      ?? "#2F4F4F",
-            SortOrder   = req.SortOrder  ?? 0,
+            TenantId        = req.TenantId,
+            Name            = req.Name.Trim(),
+            Slug            = slug,
+            Description     = req.Description,
+            IconClass       = req.IconClass       ?? "bi-grid-fill",
+            Color           = req.Color           ?? "#2F4F4F",
+            SortOrder       = req.SortOrder       ?? 0,
+            IsPublic        = req.IsPublic        ?? false,
+            ShowInDashboard = req.ShowInDashboard ?? false,
+            RequiredPlanSlug = req.RequiredPlanSlug,
         };
 
         _db.AppSuites.Add(suite);
@@ -82,12 +85,15 @@ public class AppSuitesController : ControllerBase
         var suite = await _db.AppSuites.FindAsync(id);
         if (suite == null) return NotFound();
 
-        suite.Name        = req.Name.Trim();
-        suite.Description = req.Description ?? suite.Description;
-        suite.IconClass   = req.IconClass   ?? suite.IconClass;
-        suite.Color       = req.Color       ?? suite.Color;
-        suite.SortOrder   = req.SortOrder   ?? suite.SortOrder;
-        suite.UpdatedAt   = DateTimeOffset.UtcNow;
+        suite.Name             = req.Name.Trim();
+        suite.Description      = req.Description      ?? suite.Description;
+        suite.IconClass        = req.IconClass        ?? suite.IconClass;
+        suite.Color            = req.Color            ?? suite.Color;
+        suite.SortOrder        = req.SortOrder        ?? suite.SortOrder;
+        suite.IsPublic         = req.IsPublic         ?? suite.IsPublic;
+        suite.ShowInDashboard  = req.ShowInDashboard  ?? suite.ShowInDashboard;
+        suite.RequiredPlanSlug = req.RequiredPlanSlug ?? suite.RequiredPlanSlug;
+        suite.UpdatedAt        = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync();
         return Ok(suite);
@@ -125,9 +131,12 @@ public class AppSuitesController : ControllerBase
 public record UpsertSuiteRequest(
     Guid    TenantId,
     string  Name,
-    string? Slug        = null,
-    string? Description = null,
-    string? IconClass   = null,
-    string? Color       = null,
-    int?    SortOrder   = null
+    string? Slug             = null,
+    string? Description      = null,
+    string? IconClass        = null,
+    string? Color            = null,
+    int?    SortOrder        = null,
+    bool?   IsPublic         = null,
+    bool?   ShowInDashboard  = null,
+    string? RequiredPlanSlug = null
 );
