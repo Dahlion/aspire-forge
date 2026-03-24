@@ -2,7 +2,7 @@ import type {
   EmsDashboard, MedLicenseLevel, MedTag, MedMedication, MedMedicationConfig,
   MedPersonnel, MedStorageLocation, MedContainer, MedVial, MedVialEvent,
   MedCheckSession, MedCheckItem, OpenFdaLookup, MedAgencyConfig, EmsPermissions,
-  MedSealEvent,
+  MedSealEvent, MedSealStock, MedDiscrepancy,
 } from '../../types/ems';
 
 const BASE = 'http://localhost:5236/api/med';
@@ -26,11 +26,9 @@ const qs = (params: Record<string, string | number | boolean | undefined | null>
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join('&');
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-export const fetchEmsDashboard = (tenantId: string) =>
-  req<EmsDashboard>(`${BASE}/dashboard${qs({ tenantId })}`);
+export const fetchEmsDashboard = (tenantId: string, involvedPersonnelId?: string) =>
+  req<EmsDashboard>(`${BASE}/dashboard${qs({ tenantId, involvedPersonnelId })}`);
 
-// ── License Levels ────────────────────────────────────────────────────────────
 export const fetchLicenseLevels = (tenantId: string) =>
   req<MedLicenseLevel[]>(`${BASE}/license-levels${qs({ tenantId })}`);
 
@@ -43,7 +41,7 @@ export const updateLicenseLevel = (tenantId: string, id: string, body: Partial<M
 export const deleteLicenseLevel = (tenantId: string, id: string) =>
   req<void>(`${BASE}/license-levels/${id}${qs({ tenantId })}`, { method: 'DELETE' });
 
-// ── Tags ──────────────────────────────────────────────────────────────────────
+// ── Tags ─────────────────────────────────────────────────────────────────────
 export const fetchTags = (tenantId: string) =>
   req<MedTag[]>(`${BASE}/tags${qs({ tenantId })}`);
 
@@ -124,12 +122,6 @@ export const createContainer = (locationId: string, body: Partial<MedContainer>)
 export const updateContainer = (id: string, body: Partial<MedContainer>) =>
   req<MedContainer>(`${BASE}/containers/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 
-export const breakSeal = (id: string, body: { personnelId: string; witnessPersonnelId?: string; notes?: string }) =>
-  req<MedContainer>(`${BASE}/containers/${id}/break-seal`, { method: 'POST', body: JSON.stringify(body) });
-
-export const applySeal = (id: string, body: { sealNumber: string; personnelId: string; isMasterSeal?: boolean; witnessPersonnelId?: string }) =>
-  req<MedContainer>(`${BASE}/containers/${id}/apply-seal`, { method: 'POST', body: JSON.stringify(body) });
-
 export const fetchSealEvents = (containerId: string) =>
   req<MedSealEvent[]>(`${BASE}/containers/${containerId}/seal-events`);
 
@@ -179,19 +171,96 @@ export const expireVial = (tenantId: string, id: string, body: { personnelId?: s
 export const fetchVialEvents = (tenantId: string, id: string) =>
   req<MedVialEvent[]>(`${BASE}/vials/${id}/events${qs({ tenantId })}`);
 
-// ── Check Sessions ────────────────────────────────────────────────────────────
-export const fetchCheckSessions = (tenantId: string, params?: { locationId?: string; status?: string }) =>
-  req<MedCheckSession[]>(`${BASE}/checks${qs({ tenantId, ...params })}`);
+// ── Agency Config ─────────────────────────────────────────────────────────────
+export const fetchAgencyConfig = (tenantId: string) =>
+  req<MedAgencyConfig>(`${BASE}/agency-config${qs({ tenantId })}`);
+
+export const updateAgencyConfig = (tenantId: string, body: Partial<MedAgencyConfig>) =>
+  req<MedAgencyConfig>(`${BASE}/agency-config${qs({ tenantId })}`, { method: 'PUT', body: JSON.stringify(body) });
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+export const fetchReportVialUsage = (tenantId: string, from: string, to: string) =>
+  req<any[]>(`${BASE}/reports/vial-usage${qs({ tenantId, from, to })}`);
+
+export const fetchReportWasteLog = (tenantId: string, from: string, to: string) =>
+  req<any[]>(`${BASE}/reports/waste-log${qs({ tenantId, from, to })}`);
+
+export const fetchReportCheckCompliance = (tenantId: string, from: string, to: string) =>
+  req<any[]>(`${BASE}/reports/check-compliance${qs({ tenantId, from, to })}`);
+
+export const fetchReportExpiry = (tenantId: string) =>
+  req<any>(`${BASE}/reports/expiry${qs({ tenantId })}`);
+
+export const fetchReportInventory = (tenantId: string) =>
+  req<any[]>(`${BASE}/reports/inventory${qs({ tenantId })}`);
+
+export const fetchEmsAdminSummary = (tenantId: string) =>
+  req<{
+    activeVials: number;
+    locationCount: number;
+    personnelCount: number;
+    openCheckSessions: number;
+    expiringVials: number;
+    brokenSeals: number;
+  } | null>(`${BASE}/admin-summary${qs({ tenantId })}`);
+
+export const breakSeal = (id: string, body: { personnelId: string; witnessPersonnelId?: string; notes?: string }) =>
+  req<MedContainer>(`${BASE}/containers/${id}/break-seal`, { method: 'POST', body: JSON.stringify(body) });
+
+export const applySeal = (id: string, body: { sealNumber: string; personnelId: string; isMasterSeal: boolean; witnessPersonnelId?: string; notes?: string }) =>
+  req<MedContainer>(`${BASE}/containers/${id}/apply-seal`, { method: 'POST', body: JSON.stringify(body) });
+
+export const fetchSeals = (tenantId: string, params?: { status?: string; licenseLevelId?: string }) =>
+  req<MedSealStock[]>(`${BASE}/seals${qs({ tenantId, ...(params ?? {}) })}`);
+
+export const createSeal = (tenantId: string, body: { sealNumber: string; sealType?: string; assignedLicenseLevelId?: string; notes?: string }) =>
+  req<MedSealStock>(`${BASE}/seals${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
+
+export const voidSeal = (tenantId: string, id: string) =>
+  req<MedSealStock>(`${BASE}/seals/${id}/void${qs({ tenantId })}`, { method: 'POST', body: '{}' });
+
+export const fetchCheckSessions = (
+  tenantId: string,
+  params?: { locationId?: string; status?: string; involvedPersonnelId?: string; from?: string; to?: string }
+) => req<MedCheckSession[]>(`${BASE}/checks${qs({ tenantId, ...(params ?? {}) })}`);
+
+export const fetchChecksDue = (tenantId: string) =>
+  req<any[]>(`${BASE}/checks/due${qs({ tenantId })}`);
 
 export const createCheckSession = (tenantId: string, body: {
-  storageLocationId: string; personnelId: string; witnessPersonnelId?: string;
+  storageLocationId: string;
+  personnelId: string;
+  witnessPersonnelId?: string;
+  notes?: string;
+  saveAsDraft: boolean;
 }) => req<MedCheckSession>(`${BASE}/checks${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
+
+export const updateCheckSession = (tenantId: string, id: string, body: { witnessPersonnelId?: string; notes?: string }) =>
+  req<MedCheckSession>(`${BASE}/checks/${id}${qs({ tenantId })}`, { method: 'PUT', body: JSON.stringify(body) });
+
+export const startCheckSession = (tenantId: string, id: string) =>
+  req<MedCheckSession>(`${BASE}/checks/${id}/start${qs({ tenantId })}`, { method: 'POST', body: '{}' });
+
+export const cancelCheckSession = (tenantId: string, id: string, body: { personnelId: string; reason?: string }) =>
+  req<MedCheckSession>(`${BASE}/checks/${id}/cancel${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
 
 export const fetchCheckSession = (tenantId: string, id: string) =>
   req<MedCheckSession>(`${BASE}/checks/${id}${qs({ tenantId })}`);
 
-export const addCheckItem = (tenantId: string, sessionId: string, body: Partial<MedCheckItem>) =>
-  req<MedCheckItem>(`${BASE}/checks/${sessionId}/items${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
+export const addCheckItem = (tenantId: string, sessionId: string, body: {
+  containerId?: string;
+  vialId?: string;
+  sealIntact: boolean;
+  passed: boolean;
+  discrepancy?: string;
+  discrepancyType?: string;
+  severity?: string;
+  summary?: string;
+  details?: string;
+  requiresSupervisorReview?: boolean;
+  requiresSealReplacement?: boolean;
+  requiresIncidentReport?: boolean;
+}) => req<MedCheckItem>(`${BASE}/checks/${sessionId}/items${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
 
 export const completeCheckSession = (tenantId: string, id: string, notes?: string) =>
   req<MedCheckSession>(`${BASE}/checks/${id}/complete${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify({ notes }) });
@@ -199,32 +268,14 @@ export const completeCheckSession = (tenantId: string, id: string, notes?: strin
 export const abortCheckSession = (tenantId: string, id: string) =>
   req<MedCheckSession>(`${BASE}/checks/${id}/abort${qs({ tenantId })}`, { method: 'POST', body: '{}' });
 
-// ── Agency Config ──────────────────────────────────────────────────────────────
-export const fetchAgencyConfig = (tenantId: string) =>
-  req<MedAgencyConfig>(`${BASE}/agency-config${qs({ tenantId })}`);
+export const fetchDiscrepancies = (tenantId: string, status?: string) =>
+  req<MedDiscrepancy[]>(`${BASE}/discrepancies${qs({ tenantId, status })}`);
 
-export const updateAgencyConfig = (tenantId: string, body: MedAgencyConfig) =>
-  req<MedAgencyConfig>(`${BASE}/agency-config${qs({ tenantId })}`, { method: 'PUT', body: JSON.stringify(body) });
+export const resolveDiscrepancy = (tenantId: string, id: string, body: { resolvedByPersonnelId: string; resolutionNotes: string }) =>
+  req<MedDiscrepancy>(`${BASE}/discrepancies/${id}/resolve${qs({ tenantId })}`, { method: 'POST', body: JSON.stringify(body) });
 
-// ── Permissions ────────────────────────────────────────────────────────────────
 export const fetchMyPermissions = (tenantId: string, username: string) =>
   req<EmsPermissions>(`${BASE}/my-permissions${qs({ tenantId, username })}`);
 
-// ── Reports ────────────────────────────────────────────────────────────────────
-export const fetchReportVialUsage = (tenantId: string, from?: string, to?: string) =>
-  req<any[]>(`${BASE}/reports/vial-usage${qs({ tenantId, from, to })}`);
-
-export const fetchReportWasteLog = (tenantId: string, from?: string, to?: string) =>
-  req<any[]>(`${BASE}/reports/waste-log${qs({ tenantId, from, to })}`);
-
-export const fetchReportCheckCompliance = (tenantId: string, from?: string, to?: string) =>
-  req<any>(`${BASE}/reports/check-compliance${qs({ tenantId, from, to })}`);
-
-export const fetchReportExpiry = (tenantId: string, warningDays?: number) =>
-  req<any>(`${BASE}/reports/expiry${qs({ tenantId, warningDays })}`);
-
-export const fetchReportInventory = (tenantId: string) =>
-  req<any[]>(`${BASE}/reports/inventory${qs({ tenantId })}`);
-
-export const fetchEmsAdminSummary = (tenantId: string) =>
-  req<any>(`${BASE}/admin-summary${qs({ tenantId })}`);
+export const seedStandardMedications = (tenantId: string) =>
+  req<{ created: number }>(`${BASE}/catalog/seed-standard${qs({ tenantId })}`, { method: 'POST', body: '{}' });

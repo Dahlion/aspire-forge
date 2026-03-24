@@ -1,8 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// EMS Medication Tracker — TypeScript domain types
-// Mirrors the C# entity models returned by /api/med/*
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface MedLicenseLevel {
   id: string;
   tenantId: string;
@@ -19,6 +14,11 @@ export interface MedLicenseLevel {
   canManageCatalog: boolean;
   canManageRoster: boolean;
   canManageLocations: boolean;
+  canManageSeals: boolean;
+  canApplySeal: boolean;
+  canBreakSeal: boolean;
+  canResolveDiscrepancies: boolean;
+  canViewReports: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -38,7 +38,7 @@ export interface MedMedication {
   tenantId: string;
   genericName: string;
   brandName?: string;
-  deaSchedule: number;   // 0=non-controlled, 2-5=controlled
+  deaSchedule: number;
   ndcCode?: string;
   concentration?: string;
   routeOfAdministration?: string;
@@ -63,8 +63,8 @@ export interface MedMedicationConfig {
   requireWitnessForWaste: boolean;
   isControlledSubstance: boolean;
   requireSealedStorage: boolean;
-  minCheckFrequencyHours?: number;   // null = use agency default
-  requiresPhysicalCount: boolean;    // overrides seal inheritance for this drug
+  minCheckFrequencyHours?: number;
+  requiresPhysicalCount: boolean;
   updatedAt: string;
 }
 
@@ -81,7 +81,7 @@ export interface MedPersonnel {
   createdAt: string;
   updatedAt: string;
   licenseLevel?: MedLicenseLevel;
-  fullName?: string;  // computed client-side
+  fullName?: string;
 }
 
 export interface MedStorageLocation {
@@ -89,7 +89,7 @@ export interface MedStorageLocation {
   tenantId: string;
   parentLocationId?: string;
   name: string;
-  locationType: string;  // unit | truck | station | vault | room | cabinet | shelf | drawer
+  locationType: string;
   description?: string;
   isActive: boolean;
   createdAt: string;
@@ -107,9 +107,12 @@ export interface MedContainer {
   isSealable: boolean;
   isSealed: boolean;
   sealNumber?: string;
-  isMasterSeal: boolean;         // seal covers all child vials (no need to check individually)
+  isMasterSeal: boolean;
   sealAppliedAt?: string;
   sealAppliedByPersonnelId?: string;
+  lastSealBrokenAt?: string;
+  lastSealBrokenByPersonnelId?: string;
+  defaultSealLicenseLevelId?: string;
   checkFrequencyHours: number;
   checkRequiresWitness: boolean;
   isControlledSubstance: boolean;
@@ -126,7 +129,7 @@ export interface MedSealEvent {
   id: string;
   containerId: string;
   sealNumber: string;
-  eventType: string;  // applied | broken
+  eventType: string;
   personnelId?: string;
   witnessPersonnelId?: string;
   notes?: string;
@@ -134,6 +137,24 @@ export interface MedSealEvent {
   createdAt: string;
   personnel?: MedPersonnel;
   witnessPersonnel?: MedPersonnel;
+}
+
+export interface MedSealStock {
+  id: string;
+  tenantId: string;
+  sealNumber: string;
+  sealType: string;
+  status: 'available' | 'applied' | 'broken' | 'void';
+  assignedLicenseLevelId?: string;
+  assignedContainerId?: string;
+  appliedAt?: string;
+  brokenAt?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  assignedLicenseLevel?: MedLicenseLevel;
+  assignedContainer?: MedContainer;
 }
 
 export type VialStatus =
@@ -194,10 +215,14 @@ export interface MedCheckSession {
   storageLocationId: string;
   personnelId: string;
   witnessPersonnelId?: string;
-  status: 'in-progress' | 'completed' | 'aborted';
+  status: 'draft' | 'in-progress' | 'completed' | 'cancelled' | 'discrepancy-open';
   notes?: string;
   startedAt: string;
   completedAt?: string;
+  cancelledAt?: string;
+  cancelledByPersonnelId?: string;
+  cancellationReason?: string;
+  lastSavedAt?: string;
   createdAt: string;
   storageLocation?: MedStorageLocation;
   personnel?: MedPersonnel;
@@ -213,11 +238,67 @@ export interface MedCheckItem {
   sealIntact: boolean;
   passed: boolean;
   discrepancy?: string;
-  checkType: string;                  // physical | seal-verified | inherited
-  inheritedFromSealNumber?: string;   // populated when checkType = 'inherited'
+  checkType: string;
+  inheritedFromSealNumber?: string;
   checkedAt: string;
   container?: MedContainer;
   vial?: MedVial;
+}
+
+export interface MedDiscrepancy {
+  id: string;
+  tenantId: string;
+  checkSessionId?: string;
+  checkItemId?: string;
+  storageLocationId?: string;
+  containerId?: string;
+  vialId?: string;
+  discrepancyType: string;
+  severity: 'info' | 'warning' | 'critical';
+  status: 'open' | 'under-review' | 'resolved' | 'void';
+  summary: string;
+  details?: string;
+  openedByPersonnelId: string;
+  openedAt: string;
+  resolvedByPersonnelId?: string;
+  resolvedAt?: string;
+  resolutionNotes?: string;
+  requiresSupervisorReview: boolean;
+  requiresSealReplacement: boolean;
+  requiresIncidentReport: boolean;
+  storageLocation?: MedStorageLocation;
+  container?: MedContainer;
+  vial?: MedVial;
+  openedByPersonnel?: MedPersonnel;
+  resolvedByPersonnel?: MedPersonnel;
+}
+
+export interface CheckDueItem {
+  containerId: string;
+  containerName: string;
+  locationId: string;
+  locationName: string;
+  checkFrequencyHours: number;
+  checkRequiresWitness: boolean;
+  isSealed: boolean;
+  sealNumber?: string;
+  lastCompletedAt?: string;
+  dueAt: string;
+  isOverdue: boolean;
+}
+
+export interface RecentCompletedCheckItem {
+  id: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  locationId: string;
+  locationName: string;
+  personnelId: string;
+  personnelName?: string;
+  witnessPersonnelId?: string;
+  witnessName?: string;
+  itemCount: number;
 }
 
 export interface EmsDashboard {
@@ -225,6 +306,9 @@ export interface EmsDashboard {
   expiringIn30DaysCount: number;
   checksDueCount: number;
   brokenSealsCount: number;
+  openDiscrepanciesCount: number;
+  checksDue: CheckDueItem[];
+  recentCompletedChecks: RecentCompletedCheckItem[];
 }
 
 export interface MedAgencyConfig {
@@ -232,7 +316,6 @@ export interface MedAgencyConfig {
   tenantId: string;
   agencyName: string;
   agencyLicenseNumber: string;
-  // Feature toggles
   enableVialTracking: boolean;
   enableDailyChecks: boolean;
   enableControlledSubstanceLog: boolean;
@@ -241,18 +324,16 @@ export interface MedAgencyConfig {
   enableOpenFdaLookup: boolean;
   enableReporting: boolean;
   enforceRolePermissions: boolean;
-  // Report toggles
   reportVialUsage: boolean;
   reportWasteLog: boolean;
   reportCheckCompliance: boolean;
   reportExpiryTracking: boolean;
   reportInventorySnapshot: boolean;
-  // Workflow defaults
   defaultCheckFrequencyHours: number;
   expiryWarningDays: number;
   requireWitnessForAllWaste: boolean;
   requireWitnessForAllChecks: boolean;
-  allowSealInheritance: boolean;  // master seal on a container auto-satisfies child vial checks
+  allowSealInheritance: boolean;
   updatedAt: string;
 }
 
@@ -273,7 +354,37 @@ export interface EmsPermissions {
   canManageCatalog: boolean;
   canManageRoster: boolean;
   canManageLocations: boolean;
+  canManageSeals: boolean;
+  canApplySeal: boolean;
+  canBreakSeal: boolean;
+  canResolveDiscrepancies: boolean;
+  canViewReports: boolean;
 }
+
+export function personnelFullName(p: MedPersonnel | undefined | null): string {
+  if (!p) return 'Unknown';
+  return p.fullName ?? `${p.firstName} ${p.lastName}`;
+}
+
+export const LOCATION_TYPE_ICONS: Record<string, string> = {
+  unit:    'bi-truck',
+  truck:   'bi-truck-front',
+  station: 'bi-building',
+  vault:   'bi-safe',
+  room:    'bi-door-closed',
+  cabinet: 'bi-archive',
+  shelf:   'bi-collection',
+  drawer:  'bi-inbox',
+};
+
+export const DEA_SCHEDULE_LABELS: Record<number, string> = {
+  0: 'Non-controlled',
+  1: 'Schedule I',
+  2: 'Schedule II',
+  3: 'Schedule III',
+  4: 'Schedule IV',
+  5: 'Schedule V',
+};
 
 export interface OpenFdaLookup {
   genericName: string;
@@ -284,40 +395,4 @@ export interface OpenFdaLookup {
   formDescription?: string;
   manufacturer?: string;
   deaSchedule: number;
-}
-
-// ── UI helpers ────────────────────────────────────────────────────────────────
-
-export const VIAL_STATUS_COLORS: Record<VialStatus, string> = {
-  ordered:      'secondary',
-  received:     'info',
-  stocked:      'primary',
-  'in-use':     'warning',
-  administered: 'success',
-  wasted:       'dark',
-  disposed:     'light',
-  expired:      'danger',
-};
-
-export const DEA_SCHEDULE_LABELS: Record<number, string> = {
-  0: 'Non-Controlled',
-  2: 'Schedule II',
-  3: 'Schedule III',
-  4: 'Schedule IV',
-  5: 'Schedule V',
-};
-
-export const LOCATION_TYPE_ICONS: Record<string, string> = {
-  unit:    'bi-truck',
-  truck:   'bi-truck',
-  station: 'bi-building',
-  vault:   'bi-safe',
-  room:    'bi-door-open',
-  cabinet: 'bi-archive',
-  shelf:   'bi-list-columns',
-  drawer:  'bi-inbox',
-};
-
-export function personnelFullName(p: MedPersonnel): string {
-  return `${p.firstName} ${p.lastName}`.trim();
 }

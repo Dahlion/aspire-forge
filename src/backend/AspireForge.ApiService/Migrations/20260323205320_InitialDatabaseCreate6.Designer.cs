@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspireForge.ApiService.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260323165044_InitialDatabaseCreate5")]
-    partial class InitialDatabaseCreate5
+    [Migration("20260323205320_InitialDatabaseCreate6")]
+    partial class InitialDatabaseCreate6
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AspireForge.ApiService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDatabaseCreate5 : Migration
+    public partial class InitialDatabaseCreate6 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
